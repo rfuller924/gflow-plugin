@@ -33,13 +33,6 @@ class Well(Element):
     @classmethod
     def renderer(cls) -> QgsSingleSymbolRenderer:
         return cls.marker_renderer(color=GREEN, size="3")
-
-    def process_gflow_row(self, row, other=None) -> Dict[str, Any]:
-        x, y = self.point_xy(row)
-        return {
-            "x": x,
-            "y": y,
-            "discharge": row["discharge"],
-            "radius": row["radius"],
-            "label": row["label"],
-        }
+    
+    def render(self, row):
+        return "{x} {y} {discharge} {radius}".format(**row)

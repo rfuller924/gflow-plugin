@@ -60,10 +60,10 @@ class Domain(Element):
         canvas.refresh()
         return ymax, ymin
 
-    def to_gflow(self, other) -> ElementExtraction:
+    def extract_data(self) -> ElementExtraction:
         data = self.table_to_records(layer=self.layer)
-        errors = self.schema.validate_gflow(
-            name=self.layer.name(), data=data, other=other
+        errors = self.schema.validate(
+            name=self.layer.name(), data=data
         )
         if errors:
             return ElementExtraction(errors=errors)

@@ -1,5 +1,6 @@
 import datetime
 from pathlib import Path
+import subprocess
 from typing import NamedTuple, Tuple, Union
 
 from PyQt5.QtCore import Qt
@@ -23,8 +24,9 @@ from qgis.core import (
     QgsProject,
     QgsRasterLayer,
     QgsTask,
-    QgsVectorLayer,
+    Qgis,
 )
+
 from qgis.gui import QgsMapLayerComboBox
 from gflow.core import geopackage, layer_styling
 from gflow.core.elements import ELEMENTS, parse_name
@@ -32,36 +34,83 @@ from gflow.core.processing import (
     mesh_contours,
     raster_contours,
 )
-from gflow.core.task import BaseServerTask
-
 
 class OutputOptions(NamedTuple):
     raster: bool
     mesh: bool
     contours: bool
-    head_observations: bool
+    piezometer: bool
+    gage: bool
+    lake_stage:bool
     discharge: bool
     flux_inspector: bool
     spacing: float
 
 
-class ComputeTask(BaseServerTask):
+class ComputeTask(QgsTask):
+    def __init__(self, parent, data, message_bar):
+        super().__init__(self.task_description, QgsTask.CanCancel)
+        self.parent = parent
+        self.data = data
+        self.message_bar = message_bar
+        self.exception = None
+        self.response = None
+        self.starttime = None
+
     @property
     def task_description(self):
-        return "Tim computation"
+        return "GFLOW computation"
 
     def run(self):
         self.starttime = datetime.datetime.now()
-        return super().run()
+        try:
+            path = self.data["path"]
+            process = subprocess.Popen(
+                ["c:/Program Files (x86)/GFLOW/gflow1.exe", path.name],
+                cwd=path.parent,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            result = process.communicate()
+            print(result)
+            return True
+            
+        except Exception as exception:
+            self.exception = exception
+            return False
 
     def success_message(self):
         runtime = datetime.datetime.now() - self.starttime
         hours, remainder = divmod(runtime.total_seconds(), 3600)
         minutes, seconds = divmod(remainder, 60)
         return (
-            f"Tim computation completed in: {hours} hours, {minutes} minutes, "
+            f"GFLOW computation completed in: {hours} hours, {minutes} minutes, "
             f"and {round(seconds, 2)} seconds."
         )
+
+    def push_success_message(self) -> None:
+        self.message_bar.pushMessage(
+            title="Info",
+            text=self.success_message(),
+            level=Qgis.Info,
+        )
+        return
+
+    def push_failure_message(self) -> None:
+        if self.exception is not None:
+            message = "Exception: " + str(self.exception)
+        elif self.response is not None:
+            message = "Response: " + self.response
+        else:
+            message = "Unknown failure"
+
+        self.message_bar.pushMessage(
+            title="Error",
+            text=f"Failed {self.task_description}. Server error:\n{message}",
+            level=Qgis.Critical,
+        )
+        return
 
     def finished(self, result):
         self.parent.set_interpreter_interaction(True)
@@ -71,21 +120,16 @@ class ComputeTask(BaseServerTask):
             output = self.data["output_options"]
             name = f"{Path(path).stem}"
             self.parent.parent.create_output_group(name=f"{name} output")
-            if any(
-                (
-                    output.head_observations,
-                    output.discharge,
-                    output.discharge_observations,
-                )
-            ):
-                self.parent.load_vector_result(path)
-            if output.mesh:
-                self.parent.load_mesh_result(path, output.contours)
             if output.raster:
                 self.parent.load_raster_result(path)
 
         else:
             self.push_failure_message()
+        return
+
+    def cancel(self) -> None:
+        self.parent.set_interpreter_interaction(True)
+        super().cancel()
         return
 
 
@@ -103,9 +147,11 @@ class ComputeWidget(QWidget):
         self.mesh_checkbox = QCheckBox("Mesh")
         self.raster_checkbox = QCheckBox("Raster")
         self.contours_checkbox = QCheckBox("Contours")
-        self.head_observations_checkbox = QCheckBox("Head Observations")
+        self.piezometer_checkbox = QCheckBox("Piezometer")
+        self.gage_checkbox = QCheckBox("Gage")
+        self.lake_stage_checkbox = QCheckBox("Lake Stage")
         self.discharge_checkbox = QCheckBox("Discharge")
-        self.discharge_observations_checkbox = QCheckBox("Discharge Observations")
+        self.flux_inspector_checkbox = QCheckBox("Flux Inspector")
 
         self.spacing_spin_box = QDoubleSpinBox()
         self.spacing_spin_box.setMinimum(0.0)
@@ -170,9 +216,11 @@ class ComputeWidget(QWidget):
         result_layout.addWidget(self.mesh_checkbox)
         result_layout.addWidget(self.raster_checkbox)
         result_layout.addWidget(self.contours_checkbox)
-        result_layout.addWidget(self.head_observations_checkbox)
+        result_layout.addWidget(self.piezometer_checkbox)
+        result_layout.addWidget(self.gage_checkbox)
+        result_layout.addWidget(self.lake_stage_checkbox)
         result_layout.addWidget(self.discharge_checkbox)
-        result_layout.addWidget(self.discharge_observations_checkbox)
+        result_layout.addWidget(self.flux_inspector_checkbox)
 
         result_layout.addLayout(button_row)
 
@@ -201,12 +249,14 @@ class ComputeWidget(QWidget):
     def reset(self):
         self.spacing_spin_box.setValue(25.0)
         self.output_line_edit.setText("")
-        self.mesh_checkbox.setChecked(True)
-        self.raster_checkbox.setChecked(False)
+        self.mesh_checkbox.setChecked(False)
+        self.raster_checkbox.setChecked(True)
         self.contours_checkbox.setChecked(True)
-        self.head_observations_checkbox.setChecked(True)
+        self.piezometer_checkbox.setChecked(False)
+        self.gage_checkbox.setChecked(False)
+        self.lake_stage_checkbox.setChecked(False)
         self.discharge_checkbox.setChecked(False)
-        self.discharge_observations_checkbox.setChecked(False)
+        self.flux_inspector_checkbox.setChecked(False)
         self.contour_min_box.setValue(-5.0)
         self.contour_max_box.setValue(5.0)
         self.contour_step_box.setValue(0.5)
@@ -247,9 +297,11 @@ class ComputeWidget(QWidget):
             raster=self.raster_checkbox.isChecked(),
             mesh=self.mesh_checkbox.isChecked(),
             contours=self.contours_checkbox.isChecked(),
-            head_observations=self.head_observations_checkbox.isChecked(),
+            piezometer=self.piezometer_checkbox.isChecked(),
+            gage=self.gage_checkbox.isChecked(),
+            lake_stage=self.lake_stage_checkbox.isChecked(),
             discharge=self.discharge_checkbox.isChecked(),
-            discharge_observations=self.discharge_observations_checkbox.isChecked(),
+            flux_inspector=self.flux_inspector_checkbox.isChecked(),
             spacing=self.spacing_spin_box.value(),
         )
 
@@ -349,8 +401,10 @@ class ComputeWidget(QWidget):
         GeoPackage dataset.
         """
 
-        path = Path(self.output_path).absolute().with_suffix(".json")
-        invalid_input = self.parent.dataset_widget.convert_to_json(
+        directory = Path(self.output_path)
+        directory.mkdir(parents=True, exist_ok=True)
+        path = (directory / directory.stem).absolute().with_suffix(".dat")
+        invalid_input = self.parent.dataset_widget.convert_to_gflow(
             path
         )
         # Early return in case some problems are found.
@@ -358,8 +412,7 @@ class ComputeWidget(QWidget):
             return
 
         task_data = {
-            "operation": "compute",
-            "path": str(path),
+            "path": path,
             "output_options": self.output_options,
         }
         # https://gis.stackexchange.com/questions/296175/issues-with-qgstask-and-task-manager
@@ -377,11 +430,6 @@ class ComputeWidget(QWidget):
                 QgsProject.instance().removeMapLayer(layer.id())
 
         self.compute_task = ComputeTask(self, task_data, self.parent.message_bar)
-        self.start_task = self.parent.start_interpreter_task()
-        if self.start_task is not None:
-            self.compute_task.addSubTask(
-                self.start_task, [], QgsTask.ParentDependsOnSubTask
-            )
         self.set_interpreter_interaction(False)
         QgsApplication.taskManager().addTask(self.compute_task)
         return
@@ -461,63 +509,17 @@ class ComputeWidget(QWidget):
         return
 
     def load_raster_result(self, path: Union[Path, str]) -> None:
-        def steady_or_first(name: str) -> bool:
-            if "time=" not in name:
-                return True
-            elif "time=0" in name:
-                return True
-            return False
-
         # String for QGIS functions
         path = Path(path)
-        raster_path = str(path.with_suffix(".nc"))
-        layer = QgsRasterLayer(raster_path, "", "gdal")
-
-        bands = [i + 1 for i in range(layer.bandCount())]
-        bandnames = [layer.bandName(band) for band in bands]
-        bands = [band for band, name in zip(bands, bandnames) if steady_or_first(name)]
-
-        for i, band in enumerate(bands):
-            layer = QgsRasterLayer(raster_path, f"{path.stem}-head_layer_{i}", "gdal")
-            renderer = layer_styling.pseudocolor_renderer(
-                layer, band=band, colormap="Plasma", nclass=10
-            )
-            layer.setRenderer(renderer)
-            self.parent.output_group.add_layer(layer, "raster")
-
+        raster_path = str(path.with_suffix(".grd")).upper()
+        print(raster_path)
+        layer = QgsRasterLayer(raster_path, f"{path.stem}", "gdal")
+        renderer = layer_styling.pseudocolor_renderer(
+            layer, band=1, colormap="Plasma", nclass=10
+        )
+        layer.setRenderer(renderer)
+        self.parent.output_group.add_layer(layer, "raster")
         return
 
     def load_vector_result(self, path: Union[Path, str]) -> None:
-        path = Path(path)
-        gpkg_path = path.with_suffix(".output.gpkg")
-
-        if not gpkg_path.exists():
-            return
-
-        for layername in geopackage.layers(str(gpkg_path)):
-            layers_panel_name = f"{path.stem}-{layername}"
-
-            layer = QgsVectorLayer(
-                f"{gpkg_path}|layername={layername}", layers_panel_name
-            )
-
-            # Special-case the labelling for observations and discharge.
-            if (
-                "timml Head Observation:" in layername
-                or "ttim Head Observation" in layername
-            ):
-                labels = layer_styling.number_labels("head_layer0")
-            elif "timml Discharge Observation:" in layername:
-                labels = layer_styling.number_labels("discharge_layer0")
-            elif "discharge-" in layername:
-                labels = layer_styling.number_labels("discharge_layer0")
-            else:
-                labels = None
-
-            _, element_type, _ = parse_name(layername)
-            renderer = ELEMENTS[element_type].renderer()
-            self.parent.output_group.add_layer(
-                layer, "vector", renderer=renderer, labels=labels
-            )
-
-        return
+        pass

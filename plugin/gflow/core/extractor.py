@@ -74,4 +74,6 @@ class ExtractorMixin(abc.ABC):
 
     @staticmethod
     def polygon_xy(row) -> List:
-        return remove_zero_length(row["geometry"])
+        # GFLOW does not like the last vertex to be identical to the first; it
+        # is assumed.
+        return remove_zero_length(row["geometry"])[:-1]

@@ -44,15 +44,3 @@ class ClosedBarrier(Element):
             width_border="0.75",
             outline_style="dash",
         )
-
-    def process_gflow_row(self, row: Dict[str, Any]):
-        return {
-            "xy": self.polygon_xy(row),
-            "conductivity": row["conductivity"],
-            "thickness": row["thickness"],
-            "porosity": row["porosity"],
-            "bottom_elevation": row["bottom_elevation"],
-            "label": row["label"],
-            "ignore_inside": row["ignore_inside"],
-            "ignore_outside": row["ignore_outside"],
-        }

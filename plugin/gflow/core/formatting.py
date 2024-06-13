@@ -2,46 +2,12 @@
 Format the content of a collection of dictionaries into GFLOW text input.
 """
 
-import pprint
-import re
 import textwrap
 from typing import Any, Dict, Tuple
 
 import numpy as np
 
 from gflow.widgets.compute_widget import OutputOptions
-
-GFLOW_MAPPING = {
-    "Constant": "Constant",
-    "Uniform Flow": "Uflow",
-    "Circular Area Sink": "CircAreaSink",
-    "Well": "Well",
-    "Head Well": "HeadWell",
-    "Remote Head Well": "HeadWell",
-    "Polygon Inhomogeneity": "PolygonInhomMaq",
-    "Polygon Area Sink": "PolygonInhomMaq",
-    "Polygon Semi-Confined Top": "PolygonInhomMaq",
-    "Head Line Sink": "HeadLineSinkString",
-    "Line Sink Ditch": "LineSinkDitchString",
-    "Leaky Line Doublet": "LeakyLineDoubletString",
-    "Impermeable Line Doublet": "ImpLineDoubletString",
-    "Building Pit": "BuildingPit",
-    "Leaky Building Pit": "LeakyBuildingPit",
-    "Head Observation": "Head Observation",
-    "Discharge Observation": "Discharge Observation",
-}
-PREFIX = "    "
-
-
-
-def sanitized(name: str) -> str:
-    return name.split(":")[-1].replace(" ", "_")
-
-
-def format_kwargs(data: Dict[str, Any]) -> str:
-    return textwrap.indent(
-        "\n".join(f"{k}={pprint.pformat(v)}," for k, v in data.items()), prefix=PREFIX
-    )
 
 
 def round_spacing(ymin: float, ymax: float) -> float:
@@ -95,77 +61,94 @@ def round_extent(domain: Dict[str, float], spacing: float) -> Tuple[float]:
     return xmin, xmax, ymin, ymax
 
 
-def headgrid_entry(domain: Dict[str, float], spacing: float) -> Dict[str, float]:
+def headgrid_entry(domain: Dict[str, float], spacing: float) -> str:
     (xmin, xmax, ymin, ymax) = round_extent(domain, spacing)
-    return {
-        "xmin": xmin,
-        "xmax": xmax,
-        "ymin": ymin,
-        "ymax": ymax,
-        "spacing": spacing,
-    }
-
-
-def json_elements_and_observations(data, mapping: Dict[str, str]):
-    aquifer_data = data.pop("gflow Aquifer:Aquifer")
-
-    observations = {}
-    discharge_observations = {}
-    gflow_data = {"Aquifer": aquifer_data}
-    for layername, element_data in data.items():
-        prefix, name = layername.split(":")
-        plugin_name = re.split("gflow ", prefix)[1]
-        gflow_name = mapping[plugin_name]
-        if gflow_name is None:
-            continue
-
-        entry = {"name": name, "data": element_data}
-        gflow_data[layername] = entry
-
-    return gflow_data, observations, discharge_observations
-
-
-def gflow_json(
-    timml_data: Dict[str, Any],
-    output_options: OutputOptions,
-) -> Dict[str, Any]:
-    """
-    Take the data and add:
-
-    * the TimML type
-    * the layer name
-
-    Parameters
-    ----------
-    data: Dict[str, Any]
-    output_options: OutputOptions
-
-    Returns
-    -------
-    json_data: Dict[str, Any]
-        Data ready to dump to JSON.
-    """
-    # Process TimML elements
-    data = timml_data.copy()  # avoid side-effects
-    domain_data = data.pop("gflow Domain:Domain")
-    elements, observations, discharge_observations = json_elements_and_observations(
-        data, mapping=GFLOW_MAPPING
+    n_x = int((xmax - xmin) / spacing)
+    return textwrap.dedent(f"""\
+        window {xmin} {ymin} {xmax} {ymax}
+        horizontalpoints {n_x}"""
     )
-    json_data = {
-        "gflow": elements,
-        "observations": observations,
-        "discharge_observations": discharge_observations,
-        "window": domain_data,
-        "output_options": output_options._asdict(),
+    
+
+def uniform_flow_entry(aquifer, uniflow) -> str:
+    q = aquifer["conductivity"] * aquifer["thickness"] * uniflow["gradient"]
+    angle = np.deg2rad(uniflow["angle"])
+    qx = np.cos(angle) * q
+    qy = np.sin(angle) * q
+    return f"uniflow {qx} {qy}"
+
+
+def first(data: dict) -> Any:
+    return next(iter(data.values()))
+
+
+def concat(data: dict) -> str:
+    lines = []
+    for value in data.values():
+        lines.extend(value.rendered)
+    return "\n".join(lines)
+
+
+def data_to_gflow(gflow_data: Dict[str, Any], name: str, output_options: OutputOptions) -> str:
+    # GFLOW wants uniform flow as qx, qy
+    aquifer = first(gflow_data["Aquifer"])
+    uniflow = first(gflow_data["Uniform Flow"])
+    domain = first(gflow_data["Domain"])
+
+    data = {
+        "name": name,
+        "aquifer": aquifer.rendered[0],
+        "uniflow": uniform_flow_entry(aquifer.data, uniflow.data),
+        "reference": uniflow.rendered[0],
+        "well": concat(gflow_data["Well"]),
+        "linesink": concat(gflow_data["Head Line Sink"]),
+        "inhomogeneity": concat(gflow_data["Inhomogeneity"]),
+        "gridspec": headgrid_entry(domain.data, spacing=output_options.spacing)
     }
-    if output_options.mesh or output_options.raster:
-        json_data["headgrid"] = headgrid_entry(domain_data, output_options.spacing)
-    return json_data
-
-
-
-def data_to_json(
-    gflow_data: Dict[str, Any],
-    output_options: OutputOptions,
-) -> Dict[str, Any]:
-    return gflow_json(gflow_data, output_options)
+    
+    content = textwrap.dedent("""
+        error {name}-error.log
+        yes
+        message {name}-message.log
+        yes
+        echo {name}-echo.log
+        yes
+        picture off
+        quit
+        
+        bfname {name}
+        title {name}
+    
+        aquifer
+        {aquifer}
+        {uniflow}
+        {reference}
+        quit
+        
+        well
+        discharge
+        {well}
+        quit
+        
+        linesink head
+        {linesink}
+        quit
+        
+        inhomogeneity
+        {inhomogeneity}
+        quit
+ 
+        solve 1 3 0 1
+        
+        grid
+        {gridspec}
+        plot heads
+        go
+        save {name}
+        y
+        surfer {name}
+        y
+        quit
+        stop
+    """).format(**data)
+    return content

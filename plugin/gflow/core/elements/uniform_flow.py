@@ -1,3 +1,6 @@
+import math
+import textwrap
+
 from PyQt5.QtCore import QVariant
 from qgis.core import QgsField, QgsSingleSymbolRenderer
 from gflow.core.elements.colors import RED
@@ -11,8 +14,7 @@ class UniformFlowSchema(SingleRowSchema):
         "geometry": Required(),
         "head": Required(),
         "gradient": Required(),
-        "orientation": Required(),
-        "label": Required(),
+        "angle": Required(),
     }
 
 
@@ -22,17 +24,12 @@ class UniformFlow(Element):
     attributes = (
         QgsField("head", QVariant.Double),
         QgsField("gradient", QVariant.Double),
-        QgsField("orientation", QVariant.Double),
+        QgsField("angle", QVariant.Double),
     )
     schema = UniformFlowSchema()
-
     @classmethod
     def renderer(cls) -> QgsSingleSymbolRenderer:
         return cls.marker_renderer(color=RED, name="star", size="5")
 
-    def process_gflow_row(self, row, other=None):
-        return {
-            "head": row["head"],
-            "gradient": row["gradient"],
-            "orientation": row["orientation"],
-        }
+    def render(self, row) -> str:
+        return "reference {x} {y} {head}".format(**row)

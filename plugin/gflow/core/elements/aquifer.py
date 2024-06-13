@@ -1,3 +1,4 @@
+import textwrap
 from PyQt5.QtCore import QVariant
 from qgis.core import QgsDefaultValue, QgsField
 from gflow.core import geopackage
@@ -43,14 +44,10 @@ class Aquifer(Element):
         """This element may not be removed."""
         return
 
-    def to_gflow(self) -> ElementExtraction:
-        missing = self.check_gflow_columns()
-        if missing:
-            return ElementExtraction(errors=missing)
-
-        data = self.table_to_records(layer=self.layer)
-        errors = self.schema.validate_gflow(name=self.layer.name(), data=data)
-        return ElementExtraction(errors=errors, data=data)
-
-    def extract_data(self) -> ElementExtraction:
-        return self.to_gflow()
+    def render(self, row) -> str:
+        return textwrap.dedent("""\
+            base {base_elevation}
+            permeability {conductivity}
+            thickness {thickness}
+            porosity {porosity}"""
+        ).format(**row)

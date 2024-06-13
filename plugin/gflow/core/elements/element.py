@@ -57,6 +57,7 @@ from gflow.core.extractor import ExtractorMixin
 class ElementExtraction(NamedTuple):
     errors: Optional[Dict[str, Any]] = None
     data: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None
+    rendered: Optional[str] = None
 
 
 class NameDialog(QDialog):
@@ -183,13 +184,14 @@ class Element(ExtractorMixin, abc.ABC):
     def remove_from_geopackage(self):
         geopackage.remove_layer(self.path, self.gflow_name)
 
-    @staticmethod
-    def _check_table_columns(attributes, layer) -> Dict[str, List]:
+    def check_table_columns(self) -> Dict[str, List]:
         """
         Check if any columns are missing from the table.
 
         In that case, abort and present an error message.
         """
+        layer = self.layer
+        attributes = self.attributes
         fields = set(field.name() for field in layer.fields())
         missing = set(attr.name() for attr in attributes) - fields
         if missing:
@@ -201,26 +203,45 @@ class Element(ExtractorMixin, abc.ABC):
             return {"Table:": [msg]}
         return {}
 
-    def check_gflow_columns(self):
-        return self._check_table_columns(
-            attributes=self.attributes, layer=self.layer
-        )
+    def process_table_row(self, row) -> tuple[Dict[str, Any], str]:
+        gflow_row = row.copy()
+        gflow_row.pop("geometry", None)
+        gflow_row.pop("fid", None)
 
-    def to_gflow(self, other=None) -> ElementExtraction:
-        missing = self.check_gflow_columns()
+        match self.geometry_type:
+            case "No Geometry":
+                pass
+            case "Point":
+                gflow_row["x"], gflow_row["y"] = self.point_xy(row)
+            case "Linestring":
+                gflow_row["xy"] = self.linestring_xy(row)
+            case "Polygon":
+                gflow_row["xy"] = self.polygon_xy(row)
+                
+        rendered = self.render(gflow_row)
+        return gflow_row, rendered
+
+    def extract_data(self) -> ElementExtraction:
+        missing = self.check_table_columns()
         if missing:
             return ElementExtraction(errors=missing)
 
         data = self.table_to_records(layer=self.layer)
-        errors = self.schema.validate_gflow(
-            name=self.layer.name(), data=data, other=other
+        errors = self.schema.validate(
+            name=self.layer.name(), data=data
         )
 
         if errors:
             return ElementExtraction(errors=errors)
         else:
-            elements = [self.process_gflow_row(row=row, other=other) for row in data]
-            return ElementExtraction(data=elements)
+            elements = []
+            rendered = []
+            for row in data:
+                data, string = self.process_table_row(row)
+                elements.append(data)
+                rendered.append(string)
+            return ElementExtraction(data=data, rendered=rendered)
 
-    def extract_data(self, other=None) -> ElementExtraction:
-        return self.to_gflow(other)
+    def _render_xy(self, xy) -> str:
+        return "\n".join(f"{x} {y}" for (x, y) in xy)
+ 

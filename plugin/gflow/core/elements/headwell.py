@@ -33,13 +33,3 @@ class HeadWell(Element):
     @classmethod
     def renderer(cls) -> QgsSingleSymbolRenderer:
         return cls.marker_renderer(color=BLUE, size="3")
-
-    def process_gflow_row(self, row, other=None) -> Dict[str, Any]:
-        x, y = self.point_xy(row)
-        return {
-            "x": x,
-            "y": y,
-            "head": row["discharge"],
-            "radius": row["radius"],
-            "label": row["label"],
-        }

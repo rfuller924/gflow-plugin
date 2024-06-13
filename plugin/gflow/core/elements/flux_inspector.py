@@ -20,8 +20,3 @@ class FluxInspector(Element):
     @classmethod
     def renderer(cls) -> QgsSingleSymbolRenderer:
         return cls.line_renderer(color=LIGHT_BLUE, width="0.75", outline_style="dash")
-
-    def process_gflow_row(self, row, other=None):
-        return {
-            "xy": self.linestring_xy(row),
-        }

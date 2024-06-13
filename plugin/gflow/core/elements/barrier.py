@@ -1,3 +1,4 @@
+import textwrap
 
 from PyQt5.QtCore import QVariant
 from qgis.core import QgsDefaultValue, QgsField, QgsSingleSymbolRenderer
@@ -29,17 +30,10 @@ class Barrier(Element):
         QgsField("label", QVariant.String),
     )
     schema = BarrierSchema()
+    template = textwrap.dedent("""
+        slurry open {conductivity} {thickness} {porosity} {bottom} {elevation}               
+    """)
 
     @classmethod
     def renderer(cls) -> QgsSingleSymbolRenderer:
         return cls.line_renderer(color=RED, width="0.75", outline_style="dash")
-
-    def process_gflow_row(self, row, other=None):
-        return {
-            "xy": self.linestring_xy(row),
-            "conductivity": row["conductivity"],
-            "thickness": row["thickness"],
-            "porosity": row["porosity"],
-            "bottom_elevation": row["bottom_elevation"],
-            "label": row["label"],
-        }

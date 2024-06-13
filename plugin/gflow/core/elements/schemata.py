@@ -22,24 +22,24 @@ class SchemaBase(abc.ABC):
     def _validate_table(vd: ValidationData) -> Dict[str, List]:
         errors = defaultdict(list)
         for variable, schema in vd.schemata.items():
-            _errors = schema.validate(vd.data[variable], vd.other)
+            _errors = schema.validate(vd.data[variable])
             if _errors:
                 errors[f"{vd.name} {variable}"].extend(_errors)
         return errors
 
     @classmethod
     def validate_timeseries(
-        cls, name: str, data: Dict[str, Any], other=None
+        cls, name: str, data: Dict[str, Any]
     ) -> Dict[str, List]:
-        vd = ValidationData(cls.timeseries_schemata, (), name, data, other)
+        vd = ValidationData(cls.timeseries_schemata, (), name, data)
         return cls._validate_table(vd)
 
     @classmethod
-    def validate_gflow(
-        cls, name: str, data: Dict[str, Any], other=None
+    def validate(
+        cls, name: str, data: Dict[str, Any]
     ) -> Dict[str, List]:
         vd = ValidationData(
-            cls.schemata, name, data, other
+            cls.schemata, name, data
         )
         return cls._validate(vd)
 
@@ -61,7 +61,7 @@ class RowWiseSchema(SchemaBase, abc.ABC):
             row_errors = defaultdict(list)
 
             for variable, schema in vd.schemata.items():
-                _errors = schema.validate(row[variable], vd.other)
+                _errors = schema.validate(row[variable])
                 if _errors:
                     row_errors[variable].extend(_errors)
 

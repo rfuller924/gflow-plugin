@@ -2,7 +2,7 @@
 This module forms the high level DockWidget.
 
 It ensures the underlying widgets can talk to each other. It also manages the
-connection to the QGIS Layers Panel, and ensures there is a group for the Tim
+connection to the QGIS Layers Panel, and ensures there is a group for the GFLOW
 layers there.
 """
 from typing import Any, Dict, Union
@@ -16,7 +16,6 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 from qgis.core import QgsApplication, QgsEditFormConfig, QgsMapLayer, QgsProject
-from gflow.core.task import BaseServerTask
 from gflow.widgets.compute_widget import ComputeWidget
 from gflow.widgets.dataset_widget import DatasetWidget
 from gflow.widgets.elements_widget import ElementsWidget
@@ -173,19 +172,6 @@ class OutputGroup(LayersPanelGroup):
         self.create_subgroup("mesh")
         self.create_subgroup("raster")
         return
-
-
-class StartTask(BaseServerTask):
-    @property
-    def task_description(self):
-        return "starting server"
-
-    def run(self):
-        try:
-            print("Run!")
-        except Exception as exception:
-            self.exception = exception
-            return False
 
 
 class GflowWidget(QWidget):

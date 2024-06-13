@@ -5,6 +5,7 @@ This widget also allows enabling or disabling individual elements for a
 computation.
 """
 import json
+from collections import defaultdict
 from pathlib import Path
 from shutil import copy
 from typing import Any, Dict, List, NamedTuple, Set, Tuple
@@ -28,8 +29,7 @@ from PyQt5.QtWidgets import (
 )
 from qgis.core import Qgis, QgsProject, QgsUnitTypes
 from gflow.core.elements import Aquifer, Domain, load_elements_from_geopackage
-from gflow.core.formatting import data_to_json
-from gflow.widgets.compute_widget import OutputOptions
+from gflow.core.formatting import data_to_gflow
 from gflow.widgets.error_window import ValidationDialog
 
 
@@ -45,7 +45,7 @@ class DatasetTreeWidget(QTreeWidget):
         self.setHeaderHidden(True)
         self.setSortingEnabled(True)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        self.setHeaderLabels(["active", "element"])
+        self.setHeaderLabels(["", "element"])
         self.setHeaderHidden(False)
         header = self.header()
         header.setSectionResizeMode(1, QHeaderView.Stretch)
@@ -154,7 +154,7 @@ class DatasetTreeWidget(QTreeWidget):
         Validates all data while converting, and returns a list of validation
         errors if something is amiss.
         """
-        data = {}
+        data = defaultdict(dict)
         errors = {}
         elements = {
             item.text(1): item.element
@@ -162,23 +162,13 @@ class DatasetTreeWidget(QTreeWidget):
             if item.gflow_checkbox.isChecked()
         }
 
-        # First convert the aquifer, since we need its data to validate
-        # other elements.
-        name = "gflow Aquifer:Aquifer"
-        aquifer = elements.pop(name)
-        aquifer_extraction = aquifer.extract_data()
-        if aquifer_extraction.errors:
-            errors[name] = aquifer_extraction.errors
-            return errors, None
-        data[name] = aquifer_extraction.data[0]
-
         for name, element in elements.items():
             try:
                 extraction = element.extract_data()
                 if extraction.errors:
                     errors[name] = extraction.errors
                 elif extraction.data:  # skip empty tables
-                    data[name] = extraction.data
+                    data[element.element_type][name] = extraction
             except RuntimeError as e:
                 if (
                     e.args[0]
@@ -481,25 +471,33 @@ class DatasetWidget(QWidget):
             return Extraction(success=False)
 
         return Extraction(gflow=gflow_data)
-
-    def save_as_gflow(self) -> None:
-        outpath, _ = QFileDialog.getSaveFileName(self, "Select file", "", "*.dat")
-        if outpath == "":  # Empty string in case of cancel button press
-            return
-
+    
+    def convert_to_gflow(self, path: str) -> bool:
         extraction = self._extract_data()
         if not extraction.success:
             return
-
-        dat_content = data_to_gflow(extraction.gflow)
-        with open(outpath, "w") as f:
+        
+        dat_content = data_to_gflow(
+            extraction.gflow,
+            name=str(Path(self.path).stem),
+            output_options=self.parent.compute_widget.output_options,
+        )
+        
+        with open(path, "w") as f:
             f.write(dat_content)
 
         self.parent.message_bar.pushMessage(
             title="Info",
-            text=f"Converted geopackage to GFLOW .dat file: {outpath}",
+            text=f"Converted geopackage to GFLOW .dat file: {path}",
             level=Qgis.Info,
         )
+        return False
+
+    def save_as_gflow(self) -> bool:
+        outpath, _ = QFileDialog.getSaveFileName(self, "Select file", "", "*.dat")
+        if outpath == "":  # Empty string in case of cancel button press
+            return
+        self.convert_to_gflow(outpath)
         return
 
     def convert_to_json(

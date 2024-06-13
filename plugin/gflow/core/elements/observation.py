@@ -23,14 +23,6 @@ class Observation(Element):
     )
     schema = ObservationSchema()
 
-    def process_gflow_row(self, row, other=None):
-        x, y = self.point_xy(row)
-        return {
-            "x": x,
-            "y": y,
-            "label": row["label"],
-        }
-
 
 class Piezometer(Observation):
     @classmethod

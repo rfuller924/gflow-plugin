@@ -1,6 +1,10 @@
+"""
+Each schema enforces some constraint, e.g. it a field required or optional,
+should be positive, etc.
+"""
 import abc
 import operator
-from typing import Any, Dict, List, Sequence, Union
+from typing import List, Union
 
 OPERATORS = {
     "<": operator.lt,
@@ -20,9 +24,6 @@ def format(data) -> str:
     return ", ".join(map(str, data))
 
 
-# Base classes
-
-
 class BaseSchema(abc.ABC):
     """Base class for single value."""
 
@@ -30,13 +31,13 @@ class BaseSchema(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def validate(self, data, other) -> MaybeError:
+    def validate(self, data) -> MaybeError:
         pass
 
-    def validate_many(self, data, other) -> ErrorList:
+    def validate_many(self, data) -> ErrorList:
         errors = []
         for value in data:
-            error = self.validate(value, other)
+            error = self.validate(value)
             if error is not None:
                 errors.append(error)
 
@@ -49,8 +50,8 @@ class IterableSchema(abc.ABC):
     def __init__(self, *schemata):
         self.schemata = schemata
 
-    def validate_many(self, data, other) -> ErrorList:
-        error = self.validate(data, other)
+    def validate_many(self, data) -> ErrorList:
+        error = self.validate(data)
         if error:
             return [error]
         else:
@@ -65,27 +66,27 @@ class SchemaContainer(abc.ABC):
     def validate(self):
         pass
 
-    def _validate_schemata(self, data, other=None) -> ErrorList:
+    def _validate_schemata(self, data) -> ErrorList:
         errors = []
         for schema in self.schemata:
-            _error = schema.validate(data, other)
+            _error = schema.validate(data)
             if _error:
                 errors.append(_error)
         return errors
 
 
 class Optional(SchemaContainer):
-    def validate(self, data, other=None) -> ErrorList:
+    def validate(self, data) -> ErrorList:
         if data is None:
             return []
-        return self._validate_schemata(data, other)
+        return self._validate_schemata(data)
 
 
 class Required(SchemaContainer):
-    def validate(self, data, other=None) -> ErrorList:
+    def validate(self, data) -> ErrorList:
         if data is None:
             return ["a value is required."]
-        return self._validate_schemata(data, other)
+        return self._validate_schemata(data)
 
 
 class Positive(BaseSchema):

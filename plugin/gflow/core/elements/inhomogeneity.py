@@ -43,9 +43,26 @@ class Inhomogeneity(Element):
             color=TRANSPARENT_GREY, color_border=GREY, width_border="0.75"
         )
 
-    def process_gflow_row(self, row: Dict[str, Any], grouped: Dict[int, Any]):
-        return {
-            "xy": self.polygon_xy(row),
-            "order": row["order"],
-            "ndeg": row["ndegrees"],
-        }
+    def render(self, row) -> str:
+        NODATA = -9.999E3
+        def render_nodata(value):
+            if value is None:
+                return NODATA
+            return value
+        
+        conductivity = render_nodata(row["conductivity"])
+        base_elevation = render_nodata(row["base_elevation"])
+        porosity = render_nodata(row["porosity"])
+        average_head = render_nodata(row["average_head"])
+        
+        # Flip sign on recharge
+        recharge = row["recharge"]
+        if recharge is None:
+            recharge = NODATA
+        else:
+            recharge *= -1.0
+
+        return (
+            f"transmissivity {conductivity} {base_elevation} {average_head} {recharge} {porosity}\n" +
+            self._render_xy(row["xy"])
+        ) 
