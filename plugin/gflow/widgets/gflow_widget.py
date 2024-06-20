@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qgis.core import QgsApplication, QgsEditFormConfig, QgsMapLayer, QgsProject
+from qgis.core import QgsApplication, QgsEditFormConfig, QgsMapLayer, QgsProject, QgsSettings
 from gflow.widgets.compute_widget import ComputeWidget
 from gflow.widgets.dataset_widget import DatasetWidget
 from gflow.widgets.elements_widget import ElementsWidget
@@ -250,6 +250,14 @@ class GflowWidget(QWidget):
         self.dataset_widget.gflow_convert_button.setEnabled(value)
         self.dataset_widget.json_convert_button.setEnabled(value)
         return
+
+    def get_gflow_path(self) -> Union[str, None]:
+        settings = QgsSettings()
+        return settings.value("gflow/path", None)
+
+    def set_gflow_path(self, path: str) -> None:
+        settings = QgsSettings()
+        settings.setValue("gflow/path", path)
 
     @property
     def path(self) -> str:

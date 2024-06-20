@@ -64,9 +64,10 @@ class ComputeTask(QgsTask):
     def run(self):
         self.starttime = datetime.datetime.now()
         try:
+            gflow_path = self.data["gflow_path"]
             path = self.data["path"]
             process = subprocess.Popen(
-                ["c:/Program Files (x86)/GFLOW/gflow1.exe", path.name],
+                [gflow_path, path.name],
                 cwd=path.parent,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
@@ -412,6 +413,7 @@ class ComputeWidget(QWidget):
             return
 
         task_data = {
+            "gflow_path": self.parent.get_gflow_path(),
             "path": path,
             "output_options": self.output_options,
         }
