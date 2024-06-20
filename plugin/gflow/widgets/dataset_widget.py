@@ -45,14 +45,13 @@ class DatasetTreeWidget(QTreeWidget):
         self.setHeaderHidden(True)
         self.setSortingEnabled(True)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        self.setHeaderLabels(["", "element"])
+        self.setHeaderLabels(["   ", "element"])
         self.setHeaderHidden(False)
-        header = self.header()
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.Stretch)
-        header.setSectionsMovable(False)
         self.setColumnCount(2)
-        self.setColumnWidth(0, 1)
+        header = self.header()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionsMovable(False)
         self.domain = None
 
     def items(self) -> List[QTreeWidgetItem]:
