@@ -31,8 +31,6 @@ class ClosedBarrier(Element):
         QgsField("porosity", QVariant.Double),
         QgsField("bottom_elevation", QVariant.Double),
         QgsField("label", QVariant.String),
-        QgsField("ignore_inside", QVariant.Bool),
-        QgsField("ignore_outside", QVariant.Bool),
     )
     schema = ClosedBarrierSchema()
 
@@ -43,4 +41,12 @@ class ClosedBarrier(Element):
             color_border=RED,
             width_border="0.75",
             outline_style="dash",
+        )
+
+    def render(self, row) -> str:
+        return (
+            "slurry closed {conductivity} {thickness} {porosity} {bottom_elevation}\n".format(
+                **row
+            )
+            + self._render_xy(row["xy"])
         )

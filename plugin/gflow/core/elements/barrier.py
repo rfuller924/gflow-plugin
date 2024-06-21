@@ -1,5 +1,3 @@
-import textwrap
-
 from PyQt5.QtCore import QVariant
 from qgis.core import QgsField, QgsSingleSymbolRenderer
 
@@ -31,10 +29,15 @@ class Barrier(Element):
         QgsField("label", QVariant.String),
     )
     schema = BarrierSchema()
-    template = textwrap.dedent("""
-        slurry open {conductivity} {thickness} {porosity} {bottom} {elevation}               
-    """)
 
     @classmethod
     def renderer(cls) -> QgsSingleSymbolRenderer:
         return cls.line_renderer(color=RED, width="0.75", outline_style="dash")
+
+    def render(self, row) -> str:
+        return (
+            "slurry closed {conductivity} {thickness} {porosity} {bottom_elevation}\n".format(
+                **row
+            )
+            + self._render_xy(row["xy"])
+        )

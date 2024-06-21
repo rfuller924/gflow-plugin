@@ -94,6 +94,15 @@ def data_to_gflow(
     aquifer = first(gflow_data["Aquifer"])
     uniflow = first(gflow_data["Uniform Flow"])
     domain = first(gflow_data["Domain"])
+
+    inhomogeneities = "\n".join(
+        (
+            concat(gflow_data["Barrier"]),
+            concat(gflow_data["Closed Barrier"]),
+            concat(gflow_data["Inhomogeneity"]),
+        )
+    )
+
     linesinks = "\n".join(
         (
             concat(gflow_data["Head Line Sink"]),
@@ -110,10 +119,11 @@ def data_to_gflow(
         "aquifer": aquifer.rendered[0],
         "uniflow": uniform_flow_entry(aquifer.data, uniflow.data),
         "reference": uniflow.rendered[0],
-        "well": concat(gflow_data["Well"]),
-        "headwell": concat(gflow_data["Head Well"]),
+        "wells": concat(gflow_data["Well"]),
+        "headwells": concat(gflow_data["Head Well"]),
         "linesinks": linesinks,
-        "inhomogeneity": concat(gflow_data["Inhomogeneity"]),
+        "barrier": concat(gflow_data["Barrier"]),
+        "inhomogeneities": inhomogeneities,
         "gridspec": headgrid_entry(domain.data, spacing=output_options.spacing),
     }
 
@@ -138,12 +148,12 @@ def data_to_gflow(
         
         well
         discharge
-        {well}
+        {wells}
         quit
         
         well
         head
-        {headwell}
+        {headwells}
         quit
         
         linesink
@@ -151,7 +161,7 @@ def data_to_gflow(
         quit
         
         inhomogeneity
-        {inhomogeneity}
+        {inhomogeneities}
         quit
  
         solve 1 3 0 1
