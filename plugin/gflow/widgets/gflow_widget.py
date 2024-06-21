@@ -169,7 +169,6 @@ class OutputGroup(LayersPanelGroup):
     def create_group(self) -> None:
         self._create_group()
         self.create_subgroup("vector")
-        self.create_subgroup("mesh")
         self.create_subgroup("raster")
         return
 

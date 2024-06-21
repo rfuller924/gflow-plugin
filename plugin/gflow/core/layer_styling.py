@@ -86,7 +86,11 @@ def pseudocolor_renderer(
     raster_shader = QgsRasterShader()
     raster_shader.setRasterShaderFunction(shader_function)
 
-    return QgsSingleBandPseudoColorRenderer(layer.dataProvider(), band, raster_shader)
+    return (
+        QgsSingleBandPseudoColorRenderer(layer.dataProvider(), band, raster_shader),
+        minimum,
+        maximum,
+    )
 
 
 def contour_renderer() -> QgsSingleSymbolRenderer:

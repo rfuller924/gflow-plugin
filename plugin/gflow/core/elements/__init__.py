@@ -43,7 +43,6 @@ def parse_name(layername: str) -> Tuple[str, str]:
     For example:
     parse_name("gflow Headwell:drainage") -> ("Head Well", "drainage")
     """
-    print(layername)
     prefix, name = layername.split(":")
     element_type = re.split("gflow ", prefix)[1]
     return element_type, name

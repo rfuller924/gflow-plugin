@@ -73,8 +73,7 @@ class ComputeTask(QgsTask):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
-            result = process.communicate()
-            print(result)
+            process.communicate()
             return True
             
         except Exception as exception:
@@ -122,7 +121,7 @@ class ComputeTask(QgsTask):
             name = f"{Path(path).stem}"
             self.parent.parent.create_output_group(name=f"{name} output")
             if output.raster:
-                self.parent.load_raster_result(path)
+                self.parent.load_raster_result(path, output.contours)
 
         else:
             self.push_failure_message()
@@ -322,7 +321,7 @@ class ComputeWidget(QWidget):
     def redraw_contours(self) -> None:
         path = Path(self.output_path)
         layer = self.contour_layer.currentLayer()
-        if layer is None or "head_layer_" not in layer.name():
+        if layer is None:
             return
 
         start, stop, step = self.contour_range()
@@ -330,34 +329,16 @@ class ComputeWidget(QWidget):
             return
 
         gpkg_path = str(path.with_suffix(".output.gpkg"))
-        name = layer.name()
-        pre, mid, after = name.partition("head_layer_")
-        contours_name = f"{pre}contours-{mid}{after}"
-        if isinstance(layer, QgsMeshLayer):
-            renderer = layer.rendererSettings()
-            index = renderer.activeScalarDatasetGroup()
-            layer = mesh_contours(
-                gpkg_path=gpkg_path,
-                layer=layer,
-                index=index,
-                name=contours_name,
-                start=start,
-                stop=stop,
-                step=step,
-            )
-        elif isinstance(layer, QgsRasterLayer):
-            layer = raster_contours(
-                gpkg_path=gpkg_path,
-                layer=layer,
-                name=contours_name,
-                start=start,
-                stop=stop,
-                step=step,
-            )
-        else:
-            raise TypeError(
-                f"Expected QgsMeshLayer or QgsRasterLayer, got: {type(layer).__name__}"
-            )
+        contours_name = "head-contours"
+
+        layer = raster_contours(
+            gpkg_path=gpkg_path,
+            layer=layer,
+            name=contours_name,
+            start=start,
+            stop=stop,
+            step=step,
+        )
 
         # Re-use layer if it already exists. Otherwise add a new layer.
         project_layers = {
@@ -460,67 +441,35 @@ class ComputeWidget(QWidget):
         self.spacing_spin_box.setValue(dy)
         return
 
-    def load_mesh_result(self, path: Union[Path, str], load_contours: bool) -> None:
-        path = Path(path)
-        # String for QGIS functions
-        netcdf_path = str(path.with_suffix(".ugrid.nc"))
-        layer = QgsMeshLayer(netcdf_path, f"{path.stem}", "mdal")
-        indexes = layer.datasetGroupsIndexes()
-        contour_layers = []
-        for index in indexes:
-            qgs_index = QgsMeshDatasetIndex(group=index, dataset=0)
-            name = layer.datasetGroupMetadata(qgs_index).name()
-            if "head_layer_" not in name:
-                continue
-            index_layer = QgsMeshLayer(str(netcdf_path), f"{path.stem}-{name}", "mdal")
-            renderer = index_layer.rendererSettings()
-            renderer.setActiveScalarDatasetGroup(index)
-
-            scalar_settings = renderer.scalarSettings(index)
-            scalar_settings.setDataResamplingMethod(0)
-            renderer.setScalarSettings(index, scalar_settings)
-
-            index_layer.setRendererSettings(renderer)
-            self.parent.output_group.add_layer(index_layer, "mesh")
-
-            if load_contours:
-                # Should generally result in 20 contours.
-                start = scalar_settings.classificationMinimum()
-                stop = scalar_settings.classificationMaximum()
-                step = (stop - start) / 21
-                # If no head differences are present, no contours can be drawn.
-                if step == 0.0:
-                    return
-
-                contour_layer = mesh_contours(
-                    gpkg_path=str(path.with_suffix(".output.gpkg")),
-                    layer=index_layer,
-                    index=index,
-                    name=f"{path.stem}-contours-{name}",
-                    start=start,
-                    stop=stop,
-                    step=step,
-                )
-                contour_layers.append(contour_layer)
-
-        # Add the contours in the appropriate order: highest (deepest) layer first!
-        if load_contours:
-            for contour_layer in contour_layers[::-1]:
-                self.add_contour_layer(contour_layer)
-
-        return
-
-    def load_raster_result(self, path: Union[Path, str]) -> None:
+    def load_raster_result(self, path: Union[Path, str], contours: bool) -> None:
         # String for QGIS functions
         path = Path(path)
         raster_path = str(path.with_suffix(".grd")).upper()
-        print(raster_path)
-        layer = QgsRasterLayer(raster_path, f"{path.stem}", "gdal")
-        renderer = layer_styling.pseudocolor_renderer(
+        layer = QgsRasterLayer(raster_path, "head", "gdal")
+        renderer, minimum, maximum = layer_styling.pseudocolor_renderer(
             layer, band=1, colormap="Plasma", nclass=10
         )
         layer.setRenderer(renderer)
+        layer.setCrs(self.parent.crs)
         self.parent.output_group.add_layer(layer, "raster")
+        
+        if contours:
+            # Should generally result in 20 contours.
+            step = (maximum - minimum) / 21
+            # If no head differences are present, no contours can be drawn.
+            if step == 0.0:
+                return
+            
+            contour_layer = raster_contours(
+                gpkg_path=str(path.with_suffix(".output.gpkg")),
+                layer=layer,
+                name="head-contours",
+                start=minimum,
+                stop=maximum,
+                step=step,
+            )
+            self.add_contour_layer(contour_layer)
+
         return
 
     def load_vector_result(self, path: Union[Path, str]) -> None:

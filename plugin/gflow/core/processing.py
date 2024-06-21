@@ -47,6 +47,7 @@ def raster_contours(
 
     path = result["OUTPUT"]
     vector_layer = QgsVectorLayer(path)
+    vector_layer.setCrs(layer.crs())
 
     result = processing.run(
         "qgis:extractbyexpression",
@@ -56,8 +57,6 @@ def raster_contours(
             "OUTPUT": "TEMPORARY_OUTPUT",
         },
     )
-    # path = result["OUTPUT"]
-    # vector_layer = QgsVectorLayer(result, name)
 
     newfile = not Path(gpkg_path).exists()
     written_layer = geopackage.write_layer(
