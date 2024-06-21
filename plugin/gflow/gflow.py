@@ -1,6 +1,5 @@
-"""
-Setup a dockwidget to hold the GFLOW plugin widgets.
-"""
+"""Setup a dockwidget to hold the GFLOW plugin widgets."""
+
 from pathlib import Path
 
 from qgis.gui import QgsDockWidget
@@ -30,9 +29,7 @@ class GflowPlugin:
 
     def initGui(self):
         icon_name = "icon.png"
-        self.action_gflow = self.add_action(
-            icon_name, "GFLOW", self.toggle_gflow, True
-        )
+        self.action_gflow = self.add_action(icon_name, "GFLOW", self.toggle_gflow, True)
 
     def toggle_gflow(self):
         if self.gflow_widget is None:
@@ -40,7 +37,7 @@ class GflowPlugin:
 
             self.gflow_widget = QgsDockWidget("GFLOW")
             self.gflow_widget.setObjectName("GflowDock")
-            self.iface.addDockWidget(Qt.RightDockWidgetArea, self.gflow_widget )
+            self.iface.addDockWidget(Qt.RightDockWidgetArea, self.gflow_widget)
             widget = GflowWidget(self.gflow_widget, self.iface)
             self.gflow_widget.setWidget(widget)
             self.gflow_widget.hide()

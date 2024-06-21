@@ -1,5 +1,5 @@
-
 from qgis.core import QgsSingleSymbolRenderer
+
 from gflow.core.elements.colors import LIGHT_BLUE
 from gflow.core.elements.element import Element
 from gflow.core.elements.schemata import RowWiseSchema

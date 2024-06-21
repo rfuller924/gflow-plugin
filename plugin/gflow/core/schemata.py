@@ -2,9 +2,10 @@
 Each schema enforces some constraint, e.g. it a field required or optional,
 should be positive, etc.
 """
+
 import abc
 import operator
-from typing import List, Union
+from typing import List, Sequence, Union
 
 OPERATORS = {
     "<": operator.lt,
@@ -26,9 +27,6 @@ def format(data) -> str:
 
 class BaseSchema(abc.ABC):
     """Base class for single value."""
-
-    def __init__(self):
-        pass
 
     @abc.abstractmethod
     def validate(self, data) -> MaybeError:
@@ -108,4 +106,18 @@ class SingleRow(SchemaContainer):
         nrow = len(data)
         if nrow != 1:
             return f"Table must contain one row, found {nrow} rows."
+        return None
+
+
+class Membership(BaseSchema):
+    def __init__(self, members: Sequence):
+        self.members = set(members)
+
+    def validate(self, data) -> MaybeError:
+        if data is None:
+            return None
+        if data not in self.members:
+            return (
+                f"Value {data} not found in {self.members_key}: {format(self.members)}"
+            )
         return None

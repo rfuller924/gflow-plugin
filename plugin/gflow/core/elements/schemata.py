@@ -28,30 +28,18 @@ class SchemaBase(abc.ABC):
         return errors
 
     @classmethod
-    def validate_timeseries(
-        cls, name: str, data: Dict[str, Any]
-    ) -> Dict[str, List]:
-        vd = ValidationData(cls.timeseries_schemata, (), name, data)
-        return cls._validate_table(vd)
-
-    @classmethod
-    def validate(
-        cls, name: str, data: Dict[str, Any]
-    ) -> Dict[str, List]:
-        vd = ValidationData(
-            cls.schemata, name, data
-        )
+    def validate(cls, name: str, data: Dict[str, Any]) -> Dict[str, List]:
+        vd = ValidationData(cls.schemata, name, data)
         return cls._validate(vd)
 
-    @abc.abstractclassmethod
+    @classmethod
+    @abc.abstractmethod
     def _validate(vd: ValidationData) -> Dict[str, List]:
         pass
 
 
 class RowWiseSchema(SchemaBase, abc.ABC):
-    """
-    Schema for entries that should be validated row-by-row, such as Wells.
-    """
+    """Schema for entries that should be validated row-by-row, such as Wells."""
 
     @staticmethod
     def _validate(vd: ValidationData) -> Dict[str, List]:

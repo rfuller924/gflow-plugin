@@ -1,4 +1,5 @@
 from typing import NamedTuple
+
 import numpy as np
 
 
@@ -24,4 +25,4 @@ def read_surfer_grid(path: str) -> SurferGrid:
         xmax=xmax,
         ymin=ymin,
         ymax=ymax,
-    )  
+    )

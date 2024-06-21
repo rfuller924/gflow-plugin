@@ -88,3 +88,7 @@ plugin/gflow.zip
 # pixi environments
 .pixi/
 
+# pixi environments
+.pixi
+*.egg-info
+pixi.lock

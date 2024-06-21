@@ -2,23 +2,21 @@ from pathlib import Path
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QFileDialog,
     QDialog,
-    QPushButton,
-    QVBoxLayout,
+    QFileDialog,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QGroupBox,
     QMessageBox,
+    QPushButton,
+    QVBoxLayout,
 )
 from qgis.core import Qgis
 
 
 class ConfigDialog(QDialog):
-    """
-    Set path to GFLOW executable.
-    """
+    """Set path to GFLOW executable."""
 
     def __init__(self, parent=None):
         QDialog.__init__(self, parent)
@@ -75,7 +73,7 @@ class ConfigDialog(QDialog):
             msg.setText("Could not find GFLOW executable at the provided path!")
             msg.exec_()
             return
-        
+
         self.parent.set_gflow_path(path)
         self.parent.message_bar.pushMessage(
             title="Info",

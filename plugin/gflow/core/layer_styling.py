@@ -5,6 +5,7 @@ We'd like contours to look the same consistently. A Domain should be
 transparent, not obscuring the view. A head grid should have pseudocoloring,
 ideally with a legend stretching from minimum to maximum.
 """
+
 from typing import List
 
 from PyQt5.QtGui import QColor
@@ -40,6 +41,7 @@ def color_ramp_items(
     -------
     color_ramp_items: List[QgsColorRampShader.ColorRampItem]
         Can be used directly by the QgsColorRampShader
+
     """
     delta = maximum - minimum
     fractional_steps = [i / nclass for i in range(nclass + 1)]
@@ -69,6 +71,7 @@ def pseudocolor_renderer(
     Returns
     -------
     renderer: QgsSingleBandPseudoColorRenderer
+
     """
     stats = layer.dataProvider().bandStatistics(band, QgsRasterBandStats.All)
     minimum = stats.minimumValue

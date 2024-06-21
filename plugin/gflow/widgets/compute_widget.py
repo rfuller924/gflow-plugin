@@ -1,6 +1,6 @@
 import datetime
-from pathlib import Path
 import subprocess
+from pathlib import Path
 from typing import NamedTuple, Tuple, Union
 
 from PyQt5.QtCore import Qt
@@ -17,23 +17,20 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 from qgis.core import (
+    Qgis,
     QgsApplication,
     QgsMapLayerProxyModel,
-    QgsMeshDatasetIndex,
-    QgsMeshLayer,
     QgsProject,
     QgsRasterLayer,
     QgsTask,
-    Qgis,
 )
-
 from qgis.gui import QgsMapLayerComboBox
-from gflow.core import geopackage, layer_styling
-from gflow.core.elements import ELEMENTS, parse_name
+
+from gflow.core import layer_styling
 from gflow.core.processing import (
-    mesh_contours,
     raster_contours,
 )
+
 
 class OutputOptions(NamedTuple):
     raster: bool
@@ -41,7 +38,7 @@ class OutputOptions(NamedTuple):
     contours: bool
     piezometer: bool
     gage: bool
-    lake_stage:bool
+    lake_stage: bool
     discharge: bool
     flux_inspector: bool
     spacing: float
@@ -75,7 +72,7 @@ class ComputeTask(QgsTask):
             )
             process.communicate()
             return True
-            
+
         except Exception as exception:
             self.exception = exception
             return False
@@ -368,9 +365,7 @@ class ComputeWidget(QWidget):
         return
 
     def set_default_path(self, text: str) -> None:
-        """
-        Called when different dataset path is chosen.
-        """
+        """Called when different dataset path is chosen."""
         if text is None:
             return
         path = Path(text)
@@ -382,13 +377,10 @@ class ComputeWidget(QWidget):
         Run a GFLOW computation with the current state of the currently active
         GeoPackage dataset.
         """
-
         directory = Path(self.output_path)
         directory.mkdir(parents=True, exist_ok=True)
         path = (directory / directory.stem).absolute().with_suffix(".dat")
-        invalid_input = self.parent.dataset_widget.convert_to_gflow(
-            path
-        )
+        invalid_input = self.parent.dataset_widget.convert_to_gflow(path)
         # Early return in case some problems are found.
         if invalid_input:
             return
@@ -418,9 +410,7 @@ class ComputeWidget(QWidget):
         return
 
     def domain(self) -> None:
-        """
-        Write the current viewing extent as rectangle to the GeoPackage.
-        """
+        """Write the current viewing extent as rectangle to the GeoPackage."""
         item = self.parent.domain_item()
         ymax, ymin = item.element.update_extent(self.parent.iface)
         self.set_spacing_from_domain(ymax, ymin)
@@ -452,14 +442,14 @@ class ComputeWidget(QWidget):
         layer.setRenderer(renderer)
         layer.setCrs(self.parent.crs)
         self.parent.output_group.add_layer(layer, "raster")
-        
+
         if contours:
             # Should generally result in 20 contours.
             step = (maximum - minimum) / 21
             # If no head differences are present, no contours can be drawn.
             if step == 0.0:
                 return
-            
+
             contour_layer = raster_contours(
                 gpkg_path=str(path.with_suffix(".output.gpkg")),
                 layer=layer,

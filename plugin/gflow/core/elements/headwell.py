@@ -1,11 +1,12 @@
-from typing import Any, Dict
 
 from PyQt5.QtCore import QVariant
-from qgis.core import  QgsField, QgsSingleSymbolRenderer
+from qgis.core import QgsField, QgsSingleSymbolRenderer
+
 from gflow.core.elements.colors import BLUE
 from gflow.core.elements.element import Element
 from gflow.core.elements.schemata import RowWiseSchema
 from gflow.core.schemata import (
+    Optional,
     Required,
     StrictlyPositive,
 )
@@ -16,7 +17,7 @@ class WellSchema(RowWiseSchema):
         "geometry": Required(),
         "head": Required(),
         "radius": Required(StrictlyPositive()),
-        "label": Required(),
+        "label": Optional(),
     }
 
 
@@ -33,3 +34,6 @@ class HeadWell(Element):
     @classmethod
     def renderer(cls) -> QgsSingleSymbolRenderer:
         return cls.marker_renderer(color=BLUE, size="3")
+
+    def render(self, row):
+        return "{x} {y} {head} {radius}".format(**row)

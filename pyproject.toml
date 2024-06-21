@@ -1,0 +1,43 @@
+[project]
+name = "gflow"
+description = "QGIS plugin for the GFLOW analytic element model"
+license = { file = "LICENSE" }
+readme = "README.md"
+maintainers = [{ name = "Huite Bootsma", email = "huite.bootsma@deltares.nl" }]
+
+[tool.pixi.project]
+channels = ["conda-forge"]
+platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
+
+[tool.pixi.dependencies]
+ruff = "*"
+
+[tool.pixi.tasks]
+format = "ruff format"
+
+[tool.ruff.lint]
+# See: https://docs.astral.sh/ruff/rules/
+select = [
+    "C4",  # flake8-comprehensions
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "I",  # isort
+    "PT",  # pytest-style
+    "D",  # pydocstyle
+    "B",  # flake8-bugbear
+    "NPY",  # numpy
+]
+ignore = [
+    "D100",  # Missing docstring in public module
+    "D101",  # Missing docstring in public class
+    "D102",  # Missing docstring in public method
+    "D103",  # Missing docstring in public function
+    "D104",  # Missing docstring in public package
+    "D105",  # Missing docstring in magic method
+    "D203",  # One blank line before class
+    "D205",  # 1 blank line required between summary line and description
+    "D212",  # multi-line-summary starts on first line
+    "D401",  # First line of docstring should be in imperative mood
+    "E501",  # Line too long
+    "E741",  # Ambiguous variable name (such as "l")
+]

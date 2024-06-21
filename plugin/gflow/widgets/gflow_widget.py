@@ -5,6 +5,7 @@ It ensures the underlying widgets can talk to each other. It also manages the
 connection to the QGIS Layers Panel, and ensures there is a group for the GFLOW
 layers there.
 """
+
 from typing import Any, Dict, Union
 
 from PyQt5.QtCore import Qt
@@ -15,11 +16,18 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qgis.core import QgsApplication, QgsEditFormConfig, QgsMapLayer, QgsProject, QgsSettings
+from qgis.core import (
+    QgsApplication,
+    QgsEditFormConfig,
+    QgsMapLayer,
+    QgsProject,
+    QgsSettings,
+)
+
 from gflow.widgets.compute_widget import ComputeWidget
+from gflow.widgets.config_dialog import ConfigDialog
 from gflow.widgets.dataset_widget import DatasetWidget
 from gflow.widgets.elements_widget import ElementsWidget
-from gflow.widgets.config_dialog import ConfigDialog
 
 PYQT_DELETED_ERROR = "wrapped C/C++ object of type QgsLayerTreeGroup has been deleted"
 
@@ -111,7 +119,7 @@ class LayersPanelGroup:
         labels: Any = None,
     ) -> QgsMapLayer:
         """
-        Add a layer to the Layers Panel
+        Add a layer to the Layers Panel.
 
         Parameters
         ----------
@@ -135,6 +143,7 @@ class LayersPanelGroup:
         Returns
         -------
         maplayer: QgsMapLayer or None
+
         """
         if layer is None:
             return
@@ -229,9 +238,7 @@ class GflowWidget(QWidget):
         return
 
     def enable_geopackage_buttons(self) -> None:
-        """
-        By default, a number of buttons are disabled until a GeoPackage is loaded.
-        """
+        """By default, a number of buttons are disabled until a GeoPackage is loaded."""
         self.compute_widget.domain_button.setEnabled(True)
         self.compute_widget.compute_button.setEnabled(True)
         self.dataset_widget.save_geopackage_button.setEnabled(True)

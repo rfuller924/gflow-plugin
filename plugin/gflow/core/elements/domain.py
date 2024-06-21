@@ -8,14 +8,16 @@ from qgis.core import (
     QgsPointXY,
     QgsSingleSymbolRenderer,
 )
+
 from gflow.core.elements.colors import BLACK
-from gflow.core.elements.element import ElementExtraction, Element
+from gflow.core.elements.element import Element, ElementExtraction
 from gflow.core.elements.schemata import SingleRowSchema
-from gflow.core.schemata import Required, Required
+from gflow.core.schemata import Required
 
 
 class DomainSchema(SingleRowSchema):
     schemata = {"geometry": Required()}
+
 
 class Domain(Element):
     element_type = "Domain"
@@ -29,9 +31,7 @@ class Domain(Element):
 
     @classmethod
     def renderer(cls) -> QgsSingleSymbolRenderer:
-        """
-        Results in transparent fill, with a medium thick black border line.
-        """
+        """Results in transparent fill, with a medium thick black border line."""
         return cls.polygon_renderer(
             color="255,0,0,0", color_border=BLACK, width_border="0.75"
         )
@@ -62,9 +62,7 @@ class Domain(Element):
 
     def extract_data(self) -> ElementExtraction:
         data = self.table_to_records(layer=self.layer)
-        errors = self.schema.validate(
-            name=self.layer.name(), data=data
-        )
+        errors = self.schema.validate(name=self.layer.name(), data=data)
         if errors:
             return ElementExtraction(errors=errors)
         else:

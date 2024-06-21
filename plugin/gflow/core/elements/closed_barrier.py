@@ -1,11 +1,11 @@
-from typing import Any, Dict
-
 from PyQt5.QtCore import QVariant
-from qgis.core import QgsDefaultValue, QgsField, QgsSingleSymbolRenderer
+from qgis.core import QgsField, QgsSingleSymbolRenderer
+
 from gflow.core.elements.colors import RED, TRANSPARENT_RED
 from gflow.core.elements.element import Element
 from gflow.core.elements.schemata import RowWiseSchema
 from gflow.core.schemata import (
+    Optional,
     Required,
     StrictlyPositive,
 )
@@ -18,7 +18,7 @@ class ClosedBarrierSchema(RowWiseSchema):
         "thickness": Required(StrictlyPositive()),
         "porosity": Required(StrictlyPositive()),
         "bottom_elevation": Required(),
-        "label": Required(),
+        "label": Optional(),
     }
 
 

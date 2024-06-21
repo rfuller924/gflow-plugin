@@ -2,6 +2,7 @@ from functools import partial
 
 from PyQt5.QtWidgets import QGridLayout, QPushButton, QVBoxLayout, QWidget
 from qgis.core import Qgis
+
 from gflow.core.elements import ELEMENTS
 
 
@@ -39,6 +40,7 @@ class ElementsWidget(QWidget):
         ----------
         state: bool
             True to enable, False to disable
+
         """
         for button in self.element_buttons.values():
             button.setEnabled(True)
@@ -51,6 +53,7 @@ class ElementsWidget(QWidget):
         ----------
         element_type: str
             Name of the element type.
+
         """
         klass = ELEMENTS[element_type]
         names = self.parent.selection_names()

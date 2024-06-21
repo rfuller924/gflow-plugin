@@ -8,6 +8,7 @@ This module lightly wraps a few QGIS built in functions to:
     * Remove a layer from a geopackage
 
 """
+
 import sqlite3
 from contextlib import contextmanager
 from typing import List
@@ -39,6 +40,7 @@ def layers(path: str) -> List[str]:
     Returns
     -------
     layernames: List[str]
+
     """
     with sqlite3_cursor(path) as cursor:
         cursor.execute("Select table_name from gpkg_contents")
@@ -68,6 +70,7 @@ def write_layer(
     layer: QgsVectorLayer
         The layer, now associated with the both GeoPackage and its QGIS
         representation.
+
     """
     options = QgsVectorFileWriter.SaveVectorOptions()
     options.driverName = "gpkg"
@@ -90,5 +93,5 @@ def remove_layer(path: str, layer: str) -> None:
     query = {"DATABASE": f"{path}|layername={layer}", "SQL": f"drop table {layer}"}
     try:
         processing.run("native:spatialiteexecutesql", query)
-    except Exception:
-        raise RuntimeError(f"Failed to remove layer with {query}")
+    except Exception as exc:
+        raise RuntimeError(f"Failed to remove layer with {query}") from exc

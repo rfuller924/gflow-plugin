@@ -4,6 +4,7 @@ This widgets displays the available elements in the GeoPackage.
 This widget also allows enabling or disabling individual elements for a
 computation.
 """
+
 import json
 from collections import defaultdict
 from pathlib import Path
@@ -28,6 +29,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 from qgis.core import Qgis, QgsProject, QgsUnitTypes
+
 from gflow.core.elements import Aquifer, Domain, load_elements_from_geopackage
 from gflow.core.formatting import data_to_gflow
 from gflow.widgets.error_window import ValidationDialog
@@ -81,9 +83,7 @@ class DatasetTreeWidget(QTreeWidget):
         else:
             enabled = True
 
-        item = self.add_item(
-            gflow_name=element.gflow_name, enabled=enabled
-        )
+        item = self.add_item(gflow_name=element.gflow_name, enabled=enabled)
         item.element = element
         return
 
@@ -95,7 +95,6 @@ class DatasetTreeWidget(QTreeWidget):
         * The QGIS layer panel
         * The geopackage
         """
-
         # Collect the selected items
         selection = self.selectedItems()
         selection = [
@@ -117,7 +116,7 @@ class DatasetTreeWidget(QTreeWidget):
             return
 
         # Start deleting
-        elements = set([item.element for item in selection])
+        elements = {item.element for item in selection}
         qgs_instance = QgsProject.instance()
 
         for element in elements:
@@ -201,7 +200,9 @@ class DatasetWidget(QWidget):
         self.new_geopackage_button.clicked.connect(self.new_geopackage)
         self.save_geopackage_button.clicked.connect(self.save_geopackage)
         self.restore_geopackage_button.clicked.connect(self.restore_geopackage)
-        self.suppress_popup_checkbox = QCheckBox("Suppress attribute form pop-up after feature creation")
+        self.suppress_popup_checkbox = QCheckBox(
+            "Suppress attribute form pop-up after feature creation"
+        )
         self.suppress_popup_checkbox.stateChanged.connect(self.suppress_popup_changed)
         self.remove_button.clicked.connect(self.remove_geopackage_layer)
         self.add_button.clicked.connect(self.add_selection_to_qgis)
@@ -249,7 +250,7 @@ class DatasetWidget(QWidget):
 
     @property
     def path(self) -> str:
-        """Returns currently active path to GeoPackage"""
+        """Returns currently active path to GeoPackage."""
         return self.dataset_line_edit.text()
 
     def reset(self):
@@ -289,9 +290,7 @@ class DatasetWidget(QWidget):
         return
 
     def load_geopackage(self, input_group: str = None) -> None:
-        """
-        Load the layers of a GeoPackage into the Layers Panel
-        """
+        """Load the layers of a GeoPackage into the Layers Panel."""
         self.dataset_tree.clear()
 
         if input_group is None:
@@ -345,9 +344,7 @@ class DatasetWidget(QWidget):
         return
 
     def open_geopackage(self) -> None:
-        """
-        Open a GeoPackage file, containing qgis-tim
-        """
+        """Open a GeoPackage file, containing qgis-tim."""
         path, _ = QFileDialog.getOpenFileName(self, "Select file", "", "*.gpkg")
         if path != "":  # Empty string in case of cancel button press
             self.dataset_line_edit.setText(path)
@@ -360,9 +357,7 @@ class DatasetWidget(QWidget):
         return
 
     def save_geopackage(self) -> None:
-        """
-        Copy a GeoPackage file containing qgis-tim.
-        """
+        """Copy a GeoPackage file containing qgis-tim."""
         # Do nothing if there's nothing to copy.
         if self.path == "":
             return
@@ -418,7 +413,7 @@ class DatasetWidget(QWidget):
         Remove layers from:
         * The dataset tree widget
         * The QGIS layer panel
-        * The geopackage
+        * The geopackage.
         """
         self.dataset_tree.remove_geopackage_layers()
         return
@@ -449,7 +444,7 @@ class DatasetWidget(QWidget):
 
     def selection_names(self) -> Set[str]:
         selection = self.dataset_tree.items()
-        return set([item.element.name for item in selection])
+        return {item.element.name for item in selection}
 
     def add_element(self, element) -> None:
         self.dataset_tree.add_element(element)
@@ -470,18 +465,18 @@ class DatasetWidget(QWidget):
             return Extraction(success=False)
 
         return Extraction(gflow=gflow_data)
-    
+
     def convert_to_gflow(self, path: str) -> bool:
         extraction = self._extract_data()
         if not extraction.success:
             return
-        
+
         dat_content = data_to_gflow(
             extraction.gflow,
             name=str(Path(self.path).stem),
             output_options=self.parent.compute_widget.output_options,
         )
-        
+
         with open(path, "w") as f:
             f.write(dat_content)
 
@@ -513,6 +508,7 @@ class DatasetWidget(QWidget):
         -------
         invalid_input: bool
             Whether validation has succeeded.
+
         """
         extraction = self._extract_data()
         if not extraction.success:

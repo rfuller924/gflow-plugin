@@ -1,8 +1,10 @@
 import textwrap
+
 from PyQt5.QtCore import QVariant
-from qgis.core import QgsDefaultValue, QgsField
+from qgis.core import QgsField
+
 from gflow.core import geopackage
-from gflow.core.elements.element import ElementExtraction, Element
+from gflow.core.elements.element import Element
 from gflow.core.elements.schemata import SingleRowSchema
 from gflow.core.schemata import (
     Required,
@@ -49,5 +51,4 @@ class Aquifer(Element):
             base {base_elevation}
             permeability {conductivity}
             thickness {thickness}
-            porosity {porosity}"""
-        ).format(**row)
+            porosity {porosity}""").format(**row)

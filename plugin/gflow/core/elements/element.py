@@ -33,8 +33,9 @@ Rendering:
 """
 
 import abc
-from typing import Any, Dict, List, NamedTuple, Optional, Set, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Union
 
+import numpy as np
 from PyQt5.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -44,12 +45,15 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 from qgis.core import (
+    QgsDefaultValue,
+    QgsEditorWidgetSetup,
     QgsFillSymbol,
     QgsLineSymbol,
     QgsMarkerSymbol,
     QgsSingleSymbolRenderer,
     QgsVectorLayer,
 )
+
 from gflow.core import geopackage
 from gflow.core.extractor import ExtractorMixin
 
@@ -82,9 +86,7 @@ class NameDialog(QDialog):
 
 
 class Element(ExtractorMixin, abc.ABC):
-    """
-    Abstract base class for elements.
-    """
+    """Abstract base class for elements."""
 
     element_type = None
     geometry_type = None
@@ -165,6 +167,20 @@ class Element(ExtractorMixin, abc.ABC):
     def renderer(cls):
         return None
 
+    def set_dropdown(self, name: str, options: Sequence[str]) -> None:
+        """Use a dropdown menu for a field in the editor widget."""
+        layer = self.layer
+        index = layer.fields().indexFromName(name)
+        setup = QgsEditorWidgetSetup(
+            "ValueMap",
+            {"map": {value: value for value in options}},
+        )
+        layer.setEditorWidgetSetup(index, setup)
+        return
+
+    def set_editor_widget(self) -> None:
+        pass
+
     def layer_from_geopackage(self) -> QgsVectorLayer:
         self.layer = QgsVectorLayer(
             f"{self.path}|layername={self.gflow_name}", self.gflow_name
@@ -173,12 +189,11 @@ class Element(ExtractorMixin, abc.ABC):
     def load_layer_from_geopackage(self) -> None:
         self.layer_from_geopackage()
         self.set_defaults()
+        self.set_editor_widget()
         return
 
     def write(self):
-        self.layer = geopackage.write_layer(
-            self.path, self.layer, self.gflow_name
-        )
+        self.layer = geopackage.write_layer(self.path, self.layer, self.gflow_name)
         self.set_defaults()
 
     def remove_from_geopackage(self):
@@ -192,8 +207,8 @@ class Element(ExtractorMixin, abc.ABC):
         """
         layer = self.layer
         attributes = self.attributes
-        fields = set(field.name() for field in layer.fields())
-        missing = set(attr.name() for attr in attributes) - fields
+        fields = {field.name() for field in layer.fields()}
+        missing = {attr.name() for attr in attributes} - fields
         if missing:
             columns = ",".join(missing)
             msg = (
@@ -217,7 +232,7 @@ class Element(ExtractorMixin, abc.ABC):
                 gflow_row["xy"] = self.linestring_xy(row)
             case "Polygon":
                 gflow_row["xy"] = self.polygon_xy(row)
-                
+
         rendered = self.render(gflow_row)
         return gflow_row, rendered
 
@@ -227,9 +242,7 @@ class Element(ExtractorMixin, abc.ABC):
             return ElementExtraction(errors=missing)
 
         data = self.table_to_records(layer=self.layer)
-        errors = self.schema.validate(
-            name=self.layer.name(), data=data
-        )
+        errors = self.schema.validate(name=self.layer.name(), data=data)
 
         if errors:
             return ElementExtraction(errors=errors)
@@ -244,4 +257,37 @@ class Element(ExtractorMixin, abc.ABC):
 
     def _render_xy(self, xy) -> str:
         return "\n".join(f"{x} {y}" for (x, y) in xy)
- 
+
+
+class LineSink(Element, abc.ABC):
+    element_type = "Head Line Sink"
+    geometry_type = "Linestring"
+    LINESINKLOCATIONS = {
+        "Unknown": 0,
+        "Along stream centerline": 1,
+        "Along surface water boundary": 2,
+    }
+    defaults = {
+        "location": QgsDefaultValue("Unknown"),
+    }
+
+    def set_editor_widget(self) -> None:
+        self.set_dropdown("location", self.LINESINKLOCATIONS.keys())
+
+    def _set_location(self, row) -> None:
+        row["location"] = self.LINESINKLOCATIONS[row["location"]]
+
+    @staticmethod
+    def _interpolate_along_segments(xy, start, end) -> list[str]:
+        xy = np.array(xy)
+        distance = np.linalg.norm(np.diff(xy, axis=1), axis=1)
+        accumulated = distance.cumsum()
+        # Compute midpoint along segmenets
+        midpoint = accumulated - 0.5 * distance
+        # Linearly interpolate head to midpoint of segment
+        midpoint_values = start + (midpoint / accumulated[-1]) * (end - start)
+
+        lines = []
+        for value, (x0, y0), (x1, y1) in zip(midpoint_values, xy[:-1], xy[1:]):
+            lines.append(f"{x0} {y0} {x1} {y1} {value}")
+        return lines

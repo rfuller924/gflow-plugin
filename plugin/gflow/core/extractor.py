@@ -1,8 +1,5 @@
-"""
-Extract the content of QGIS attribute tables to dictionaries.
-"""
-import abc
-from collections import defaultdict
+"""Extract the content of QGIS attribute tables to dictionaries."""
+
 from typing import Any, Dict, List, Tuple
 
 from qgis.core import NULL, QgsVectorLayer
@@ -20,10 +17,8 @@ def remove_zero_length(geometry) -> List:
     return coordinates
 
 
-class ExtractorMixin(abc.ABC):
-    """
-    Mixin class to extract all data from QgsVectorLayers.
-    """
+class ExtractorMixin:
+    """Mixin class to extract all data from QgsVectorLayers."""
 
     @staticmethod
     def argsort(seq):

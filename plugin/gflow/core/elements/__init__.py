@@ -4,15 +4,20 @@ from functools import partial
 from typing import List, Tuple
 
 from gflow.core import geopackage
-from gflow.core.elements.element import Element
 from gflow.core.elements.aquifer import Aquifer
 from gflow.core.elements.barrier import Barrier
 from gflow.core.elements.closed_barrier import ClosedBarrier
 from gflow.core.elements.domain import Domain
+from gflow.core.elements.element import Element
 from gflow.core.elements.flux_inspector import FluxInspector
-from gflow.core.elements.head_line_sink import HeadLineSink
 from gflow.core.elements.headwell import HeadWell
 from gflow.core.elements.inhomogeneity import Inhomogeneity
+from gflow.core.elements.linesinks.discharge import DischargeLineSink
+from gflow.core.elements.linesinks.drain import DrainLineSink
+from gflow.core.elements.linesinks.farfield import FarFieldLineSink
+from gflow.core.elements.linesinks.gallery import GalleryLineSink
+from gflow.core.elements.linesinks.head import HeadLineSink
+from gflow.core.elements.linesinks.lake import LakeLineSink
 from gflow.core.elements.uniform_flow import UniformFlow
 from gflow.core.elements.well import Well
 
@@ -25,6 +30,11 @@ ELEMENTS = {
         Well,
         HeadWell,
         HeadLineSink,
+        DischargeLineSink,
+        DrainLineSink,
+        GalleryLineSink,
+        FarFieldLineSink,
+        LakeLineSink,
         Barrier,
         ClosedBarrier,
         Inhomogeneity,

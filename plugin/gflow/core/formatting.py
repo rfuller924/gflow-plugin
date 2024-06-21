@@ -1,6 +1,4 @@
-"""
-Format the content of a collection of dictionaries into GFLOW text input.
-"""
+"""Format the content of a collection of dictionaries into GFLOW text input."""
 
 import textwrap
 from typing import Any, Dict, Tuple
@@ -45,6 +43,7 @@ def round_extent(domain: Dict[str, float], spacing: float) -> Tuple[float]:
     -------
     extent: Tuple[float]
         xmin, xmax, ymin, ymax
+
     """
     xmin = domain["xmin"]
     ymin = domain["ymin"]
@@ -66,9 +65,8 @@ def headgrid_entry(domain: Dict[str, float], spacing: float) -> str:
     n_x = int((xmax - xmin) / spacing)
     return textwrap.dedent(f"""\
         window {xmin} {ymin} {xmax} {ymax}
-        horizontalpoints {n_x}"""
-    )
-    
+        horizontalpoints {n_x}""")
+
 
 def uniform_flow_entry(aquifer, uniflow) -> str:
     q = aquifer["conductivity"] * aquifer["thickness"] * uniflow["gradient"]
@@ -89,11 +87,23 @@ def concat(data: dict) -> str:
     return "\n".join(lines)
 
 
-def data_to_gflow(gflow_data: Dict[str, Any], name: str, output_options: OutputOptions) -> str:
+def data_to_gflow(
+    gflow_data: Dict[str, Any], name: str, output_options: OutputOptions
+) -> str:
     # GFLOW wants uniform flow as qx, qy
     aquifer = first(gflow_data["Aquifer"])
     uniflow = first(gflow_data["Uniform Flow"])
     domain = first(gflow_data["Domain"])
+    linesinks = "\n".join(
+        (
+            concat(gflow_data["Head Line Sink"]),
+            concat(gflow_data["Discharge Line Sink"]),
+            concat(gflow_data["Drain Line Sink"]),
+            concat(gflow_data["Gallery Line Sink"]),
+            concat(gflow_data["Far Field Line Sink"]),
+            concat(gflow_data["Lake Line Sink"]),
+        )
+    )
 
     data = {
         "name": name,
@@ -101,11 +111,12 @@ def data_to_gflow(gflow_data: Dict[str, Any], name: str, output_options: OutputO
         "uniflow": uniform_flow_entry(aquifer.data, uniflow.data),
         "reference": uniflow.rendered[0],
         "well": concat(gflow_data["Well"]),
-        "linesink": concat(gflow_data["Head Line Sink"]),
+        "headwell": concat(gflow_data["Head Well"]),
+        "linesinks": linesinks,
         "inhomogeneity": concat(gflow_data["Inhomogeneity"]),
-        "gridspec": headgrid_entry(domain.data, spacing=output_options.spacing)
+        "gridspec": headgrid_entry(domain.data, spacing=output_options.spacing),
     }
-    
+
     content = textwrap.dedent("""
         error {name}-error.log
         yes
@@ -130,8 +141,13 @@ def data_to_gflow(gflow_data: Dict[str, Any], name: str, output_options: OutputO
         {well}
         quit
         
-        linesink head
-        {linesink}
+        well
+        head
+        {headwell}
+        quit
+        
+        linesink
+        {linesinks}
         quit
         
         inhomogeneity
