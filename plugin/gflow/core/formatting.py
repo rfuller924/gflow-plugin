@@ -113,6 +113,15 @@ def data_to_gflow(
             concat(gflow_data["Lake Line Sink"]),
         )
     )
+    
+    observations = concat(gflow_data["Piezometer"])
+
+    particles = "\n".join(
+        (
+            concat(gflow_data["Forward Particle"]),
+            concat(gflow_data["Backward Particle"]),
+        )
+    )
 
     data = {
         "name": name,
@@ -124,7 +133,9 @@ def data_to_gflow(
         "linesinks": linesinks,
         "barrier": concat(gflow_data["Barrier"]),
         "inhomogeneities": inhomogeneities,
+        "observations": observations,
         "gridspec": headgrid_entry(domain.data, spacing=output_options.spacing),
+        "particles": particles,
     }
 
     content = textwrap.dedent("""
@@ -166,6 +177,12 @@ def data_to_gflow(
  
         solve 1 3 0 1
         
+        extract 
+        file {name}
+        y
+        {observations}
+        quit
+        
         grid
         {gridspec}
         plot heads
@@ -174,6 +191,19 @@ def data_to_gflow(
         y
         surfer {name}
         y
+        quit
+
+        trace
+        picture off
+        file {name}
+        y
+        time 3650
+        step 8.0
+        points
+        {particles}
+        quit
+
+        go
         quit
         stop
     """).format(**data)

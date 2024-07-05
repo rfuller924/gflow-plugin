@@ -88,11 +88,10 @@ class NameDialog(QDialog):
 class Element(ExtractorMixin, abc.ABC):
     """Abstract base class for elements."""
 
-    element_type = None
-    geometry_type = None
-    attributes = ()
-    attributes = ()
-    defaults = {}
+    element_type: str
+    geometry_type: str
+    attributes: tuple = ((),)
+    defaults: dict = {}
 
     def _initialize_default(self, path, name):
         self.name = name

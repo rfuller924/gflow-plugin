@@ -3,7 +3,6 @@ import subprocess
 from pathlib import Path
 from typing import NamedTuple, Tuple, Union
 
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QCheckBox,
     QDoubleSpinBox,
@@ -41,6 +40,7 @@ class OutputOptions(NamedTuple):
     lake_stage: bool
     discharge: bool
     flux_inspector: bool
+    pathlines: bool
     spacing: float
 
 
@@ -119,6 +119,8 @@ class ComputeTask(QgsTask):
             self.parent.parent.create_output_group(name=f"{name} output")
             if output.raster:
                 self.parent.load_raster_result(path, output.contours)
+            if output.pathlines:
+                self.parent.load_pathlines_result(path)
 
         else:
             self.push_failure_message()
@@ -149,6 +151,7 @@ class ComputeWidget(QWidget):
         self.lake_stage_checkbox = QCheckBox("Lake Stage")
         self.discharge_checkbox = QCheckBox("Discharge")
         self.flux_inspector_checkbox = QCheckBox("Flux Inspector")
+        self.pathlines_checkbox = QCheckBox("Pathlines")
 
         self.spacing_spin_box = QDoubleSpinBox()
         self.spacing_spin_box.setMinimum(0.0)
@@ -218,6 +221,7 @@ class ComputeWidget(QWidget):
         result_layout.addWidget(self.lake_stage_checkbox)
         result_layout.addWidget(self.discharge_checkbox)
         result_layout.addWidget(self.flux_inspector_checkbox)
+        result_layout.addWidget(self.pathlines_checkbox)
 
         result_layout.addLayout(button_row)
 
@@ -254,6 +258,7 @@ class ComputeWidget(QWidget):
         self.lake_stage_checkbox.setChecked(False)
         self.discharge_checkbox.setChecked(False)
         self.flux_inspector_checkbox.setChecked(False)
+        self.pathlines_checkbox.setChecked(False)
         self.contour_min_box.setValue(-5.0)
         self.contour_max_box.setValue(5.0)
         self.contour_step_box.setValue(0.5)
@@ -299,6 +304,7 @@ class ComputeWidget(QWidget):
             lake_stage=self.lake_stage_checkbox.isChecked(),
             discharge=self.discharge_checkbox.isChecked(),
             flux_inspector=self.flux_inspector_checkbox.isChecked(),
+            pathlines=self.pathlines_checkbox.isChecked(),
             spacing=self.spacing_spin_box.value(),
         )
 
@@ -462,5 +468,74 @@ class ComputeWidget(QWidget):
 
         return
 
-    def load_vector_result(self, path: Union[Path, str]) -> None:
-        pass
+    def load_pathlines_result(self, path: Union[Path, str]) -> None:
+
+        from PyQt5.QtCore import Qt, QVariant
+        from qgis.core import (
+            QgsVectorLayer,
+            QgsPointXY,
+            QgsFeature,
+            QgsGeometry,
+            QgsField,
+        )
+        from qgis.core.additions.edit import edit
+        from gflow.core import geopackage
+
+        path = Path(path)
+        pathlines_path = str(path.with_suffix(".pth")).upper()
+
+        with open(pathlines_path) as f:
+            lines = f.readlines()
+
+        # Split the lines per polyline
+        linestrings = []
+        vertices = []
+        for line in lines:
+            # Start and end lines are duplicated.
+            if line.startswith("START"):
+                # Clear the vertices
+                vertices = []
+            elif line.startswith("END"):
+                # Store the list of vertices
+                linestrings.append(vertices)
+            else:
+                # So far, we're only interested in x, y, z
+                x, y, z = [float(v) for v in line[4:47].split()]
+                vertices.append((QgsPointXY(x, y), z))
+
+        layer = QgsVectorLayer("LineString", "Pathlines", "memory")
+        provider = layer.dataProvider()
+        provider.addAttributes(
+            (
+                QgsField("start_elevation", QVariant.Double),
+                QgsField("end_elevation", QVariant.Double),
+            )
+        )
+        layer.updateFields()
+        layer.setCrs(self.parent.crs)
+        fields = layer.fields()
+
+        features = []
+        for linestring in linestrings:
+            for (vertex0, z0), (vertex1, z1) in zip(linestring[:-1], linestring[1:]):
+                geometry = QgsGeometry.fromPolylineXY((vertex0, vertex1))
+                feature = QgsFeature(fields)
+                feature.setGeometry(geometry)
+                feature.setAttribute("start_elevation", z0)
+                feature.setAttribute("end_elevation", z1)
+                features.append(feature)
+
+        with edit(layer):
+            layer.addFeatures(features)
+ 
+        gpkg_path = str(path.with_suffix(".output.gpkg"))
+        newfile = not Path(gpkg_path).exists()
+        written_layer = geopackage.write_layer(
+            path=gpkg_path,
+            layer=layer,
+            layername="Pathlines",
+            newfile=newfile,
+        )
+
+        self.parent.output_group.add_layer(written_layer, "vector", on_top=True)
+        return

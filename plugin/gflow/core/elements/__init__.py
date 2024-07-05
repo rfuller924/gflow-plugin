@@ -18,8 +18,10 @@ from gflow.core.elements.linesinks.farfield import FarFieldLineSink
 from gflow.core.elements.linesinks.gallery import GalleryLineSink
 from gflow.core.elements.linesinks.head import HeadLineSink
 from gflow.core.elements.linesinks.lake import LakeLineSink
+from gflow.core.elements.piezometer import Piezometer
 from gflow.core.elements.uniform_flow import UniformFlow
 from gflow.core.elements.well import Well
+from gflow.core.elements.particle import ForwardParticle, BackwardParticle
 
 ELEMENTS = {
     element.element_type: element
@@ -38,13 +40,18 @@ ELEMENTS = {
         Barrier,
         ClosedBarrier,
         Inhomogeneity,
+        Piezometer,
         FluxInspector,
+        ForwardParticle,
+        BackwardParticle,
     )
 }
 
 
 def parse_name(layername: str) -> Tuple[str, str]:
     """
+    Parse the name of the geopackage layer.
+
     Based on the layer name find out:
 
     * which element type it is;
