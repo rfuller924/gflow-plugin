@@ -3,6 +3,7 @@ import subprocess
 from pathlib import Path
 from typing import NamedTuple, Tuple, Union
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QCheckBox,
     QDoubleSpinBox,
