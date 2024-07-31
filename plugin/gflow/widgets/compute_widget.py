@@ -470,7 +470,6 @@ class ComputeWidget(QWidget):
         return
 
     def load_pathlines_result(self, path: Union[Path, str]) -> None:
-
         from PyQt5.QtCore import Qt, QVariant
         from qgis.core import (
             QgsVectorLayer,
@@ -528,7 +527,7 @@ class ComputeWidget(QWidget):
 
         with edit(layer):
             layer.addFeatures(features)
- 
+
         gpkg_path = str(path.with_suffix(".output.gpkg"))
         newfile = not Path(gpkg_path).exists()
         written_layer = geopackage.write_layer(
