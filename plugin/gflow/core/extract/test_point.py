@@ -1,5 +1,5 @@
-from plugin.gflow.core.extract.extraction_base import Extraction
-from plugin.gflow.core.memory_layer import PointMemoryLayer
+from gflow.core.extract.extraction_base import Extraction
+from gflow.core.memory_layer import PointMemoryLayer
 
 
 class TestPointExtraction(Extraction):

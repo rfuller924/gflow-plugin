@@ -1,11 +1,12 @@
 import abc
+from pathlib import Path
 from typing import Any
 
 from PyQt5.QtCore import QVariant
 
 from qgis.core import QgsVectorLayer, QgsField
 
-from plugin.gflow.core import geopackage
+from gflow.core import geopackage
 
 
 class Extraction(abc.ABC):
@@ -31,9 +32,12 @@ class Extraction(abc.ABC):
     ) -> QgsVectorLayer:
         fields = []
         for name in attributes:
+            # Skip the coordinates.
+            if name in ("x", "y", "x1", "y1", "x2", "y2", "xc", "yc"):
+                continue
             # The extraction file contains exclusively real numbers, except for
             # the label column.
-            if name == "label":
+            elif name == "label":
                 field = QgsField(name, QVariant.String)
             else:
                 field = QgsField(name, QVariant.Double)
@@ -48,7 +52,8 @@ class Extraction(abc.ABC):
         return memory_layer
 
     def write(self, path):
+        newfile = not Path(path).exists()
         written = geopackage.write_layer(
-            path, self.memory_layer.layer, self.name, newfile=False
+            path, self.memory_layer.layer, self.name, newfile=newfile
         )
         return [written]

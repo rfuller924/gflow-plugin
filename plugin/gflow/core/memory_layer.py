@@ -24,12 +24,13 @@ class MemoryLayer(abc.ABC):
 
     def add_features_from_records(self, records) -> None:
         fields = self.layer.fields()
+        fieldnames = [f.name() for f in fields]
         features = []
         for record in records:
             geometry = self._create_geometry(record["x"], record["y"])
             feature = QgsFeature(fields)
             feature.setGeometry(geometry)
-            feature.setAttributes(list(record.values()))
+            feature.setAttributes([record.get(f) for f in fieldnames])
             features.append(feature)
 
         with edit(self.layer):

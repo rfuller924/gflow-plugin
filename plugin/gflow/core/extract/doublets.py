@@ -1,11 +1,12 @@
 import abc
-from plugin.gflow.core.extract.extraction_base import Extraction
-from plugin.gflow.core.memory_layer import (
+from pathlib import Path
+from gflow.core.extract.extraction_base import Extraction
+from gflow.core.memory_layer import (
     LinestringMemoryLayer,
     PolygonMemoryLayer,
     PointMemoryLayer,
 )
-from plugin.gflow.core import geopackage
+from gflow.core import geopackage
 
 
 class DoubletExtraction(Extraction, abc.ABC):
@@ -59,13 +60,14 @@ class DoubletExtraction(Extraction, abc.ABC):
         return node_records
 
     def write(self, path):
+        newfile = not Path(path).exists()
         written_line = geopackage.write_layer(
-            path, self.line_layer.layer, self.name, newfile=False
+            path, self.line_layer.layer, self.name, newfile=newfile
         )
         written_node = geopackage.write_layer(
             path, self.node_layer.layer, self.node_name, newfile=False
         )
-        return [written_line, written_node]
+        return [written_node, written_line]
 
 
 class OpenSlurryWallExtraction(DoubletExtraction):

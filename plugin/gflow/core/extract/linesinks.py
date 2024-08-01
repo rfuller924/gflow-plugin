@@ -1,7 +1,7 @@
 import abc
 
-from plugin.gflow.core.memory_layer import LinestringMemoryLayer
-from plugin.gflow.core.extract.extraction_base import Extraction
+from gflow.core.memory_layer import LinestringMemoryLayer
+from gflow.core.extract.extraction_base import Extraction
 
 
 class LineSinkExtraction(Extraction, abc.ABC):
