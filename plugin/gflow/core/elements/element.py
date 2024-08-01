@@ -90,7 +90,7 @@ class Element(ExtractorMixin, abc.ABC):
 
     element_type: str
     geometry_type: str
-    attributes: tuple = ((),)
+    attributes: tuple = ()
     defaults: dict = {}
 
     def _initialize_default(self, path, name):

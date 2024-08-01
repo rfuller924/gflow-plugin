@@ -1,4 +1,3 @@
-
 from PyQt5.QtCore import QVariant
 from qgis.core import QgsField, QgsSingleSymbolRenderer
 
@@ -21,9 +20,7 @@ class PiezometerSchema(RowWiseSchema):
 class Piezometer(Element):
     element_type = "Piezometer"
     geometry_type = "Point"
-    attributes = (
-        QgsField("label", QVariant.String),
-    )
+    attributes = (QgsField("label", QVariant.String),)
     schema = PiezometerSchema()
 
     @classmethod

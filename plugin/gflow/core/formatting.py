@@ -113,7 +113,7 @@ def data_to_gflow(
             concat(gflow_data["Lake Line Sink"]),
         )
     )
-    
+
     observations = concat(gflow_data["Piezometer"])
 
     particles = "\n".join(
@@ -147,42 +147,50 @@ def data_to_gflow(
         yes
         picture off
         quit
-        
+
         bfname {name}
         title {name}
-    
+
         aquifer
         {aquifer}
         {uniflow}
         {reference}
         quit
-        
+
         well
         discharge
         {wells}
         quit
-        
+
         well
         head
         {headwells}
         quit
-        
+
         linesink
         {linesinks}
         quit
-        
+
         inhomogeneity
         {inhomogeneities}
         quit
- 
+
         solve 1 3 0 1
-        
-        extract 
+
+        extract
         file {name}
         y
         {observations}
+        well discharge
+        well head
+        ppwell discharge
+        ppwell head
+        Theis well
+        linesink discharge
+        linesink head
+        inhomogeneity
         quit
-        
+
         grid
         {gridspec}
         plot heads

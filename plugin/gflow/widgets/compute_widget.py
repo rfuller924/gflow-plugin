@@ -30,6 +30,7 @@ from gflow.core import layer_styling
 from gflow.core.processing import (
     raster_contours,
 )
+from gflow.core.extract import extraction_to_layers
 
 
 class OutputOptions(NamedTuple):
@@ -122,6 +123,7 @@ class ComputeTask(QgsTask):
                 self.parent.load_raster_result(path, output.contours)
             if output.pathlines:
                 self.parent.load_pathlines_result(path)
+            self.parent.load_extract_result(path)
 
         else:
             self.push_failure_message()
@@ -470,7 +472,6 @@ class ComputeWidget(QWidget):
         return
 
     def load_pathlines_result(self, path: Union[Path, str]) -> None:
-
         from PyQt5.QtCore import Qt, QVariant
         from qgis.core import (
             QgsVectorLayer,
@@ -528,7 +529,7 @@ class ComputeWidget(QWidget):
 
         with edit(layer):
             layer.addFeatures(features)
- 
+
         gpkg_path = str(path.with_suffix(".output.gpkg"))
         newfile = not Path(gpkg_path).exists()
         written_layer = geopackage.write_layer(
@@ -539,4 +540,16 @@ class ComputeWidget(QWidget):
         )
 
         self.parent.output_group.add_layer(written_layer, "vector", on_top=True)
+        return
+
+    def load_extract_result(self, path: Union[Path, str]) -> None:
+        path = Path(path)
+        extract_path = Path(str(path.with_suffix(".xtr")).upper())
+        vector_layers = extraction_to_layers(
+            extract_path,
+            crs=self.parent.crs,
+            gpkg_path=str(path.with_suffix(".output.gpkg")),
+        )
+        for layer in vector_layers:
+            self.parent.output_group.add_layer(layer, "vector", on_top=False)
         return
