@@ -194,6 +194,8 @@ class Element(ExtractorMixin, abc.ABC):
     def write(self):
         self.layer = geopackage.write_layer(self.path, self.layer, self.gflow_name)
         self.set_defaults()
+        self.set_editor_widget()
+        return
 
     def remove_from_geopackage(self):
         geopackage.remove_layer(self.path, self.gflow_name)

@@ -118,6 +118,6 @@ class Membership(BaseSchema):
             return None
         if data not in self.members:
             return (
-                f"Value {data} not found in {self.members_key}: {format(self.members)}"
+                f"Value {data} not found in {self.members}: {format(self.members)}"
             )
         return None

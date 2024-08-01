@@ -16,7 +16,6 @@ class DischargeLineSinkSchema(RowWiseSchema):
         "geometry": Required(),
         "starting_density": Required(),
         "ending_density": Required(),
-        "location": Required(Membership(LineSink.LINESINKLOCATIONS.keys())),
         "label": Optional(),
     }
 
@@ -27,15 +26,13 @@ class DischargeLineSink(LineSink):
     attributes = (
         QgsField("starting_density", QVariant.Double),
         QgsField("ending_density", QVariant.Double),
+        QgsField("label", QVariant.String),
     )
     schema = DischargeLineSinkSchema()
 
     @classmethod
     def renderer(cls) -> QgsSingleSymbolRenderer:
         return cls.line_renderer(color=GREEN, width="0.75")
-
-    def set_editor_widget(self) -> None:
-        pass
 
     def render(self, row) -> str:
         lines = ["discharge"] + self._interpolate_along_segments(
