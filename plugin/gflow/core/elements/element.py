@@ -212,10 +212,7 @@ class Element(ExtractorMixin, abc.ABC):
         missing = {attr.name() for attr in attributes} - fields
         if missing:
             columns = ",".join(missing)
-            msg = (
-                f"Table is missing columns: {columns}. "
-                "Remove and recreate the layer."
-            )
+            msg = f"Table is missing columns: {columns}. Remove and recreate the layer."
             return {"Table:": [msg]}
         return {}
 
