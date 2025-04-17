@@ -23,6 +23,7 @@ from gflow.core.extract.wells import (
 from gflow.core.extract.test_point import TestPointExtraction
 
 
+# Mapping from header to data type.
 MAPPING = {
     "! discharge specified wells": DischargeWellExtraction,
     "! head specified wells": HeadWellExtraction,
@@ -33,6 +34,7 @@ MAPPING = {
     "! transmissivity inhomogeneity domain.": InhomogeneityExtraction,
     "! open slurry wall.": OpenSlurryWallExtraction,
     "! closed slurry wall.": ClosedSlurryWallExtraction,
+    "*      x              y              z          porosity    hydr. conduct.   base elevation net recharge  leakage (bottom)      head      lower head     resistance                   Vx                    Vy                    Vz              label": TestPointExtraction,
     #    "! flux_inspection_line_label   normal_flow        numerical_nf": FluxInspectionExtraction,
 }
 
@@ -89,14 +91,7 @@ def extraction_to_layers(path, crs, gpkg_path):
     layers = []
     while not parser.done():
         line = parser.advance().strip()
-        next_line = parser.peek()
-
-        # A TestPoint doesn't have a specific header, but its lines start with
-        # @.
         ExtractionClass = MAPPING.get(line, None)
-        if ExtractionClass is None and next_line.startswith("@"):
-            ExtractionClass = TestPointExtraction
-
         if ExtractionClass is not None:
             extraction = ExtractionClass(parser, crs)
             # TODO: set layer styling

@@ -23,7 +23,6 @@ class Extraction(abc.ABC):
 
     @classmethod
     def parse(cls, parser):
-        parser.advance()  # skip header
         return parser.advance_block(cls.attributes)
 
     @classmethod
