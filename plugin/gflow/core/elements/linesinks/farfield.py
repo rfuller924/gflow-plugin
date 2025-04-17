@@ -30,6 +30,7 @@ class FarFieldLineSink(LineSink):
         QgsField("starting_head", QVariant.Double),
         QgsField("ending_head", QVariant.Double),
         QgsField("location", QVariant.String),
+        QgsField("label", QVariant.String),
     )
     schema = FarFieldLineSinkSchema()
 
