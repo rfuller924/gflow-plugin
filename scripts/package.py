@@ -1,3 +1,3 @@
 import shutil
 
-zippath = shutil.make_archive("./plugin/gflow", "zip", "./plugin")
+zippath = shutil.make_archive("./gflow-plugin", "zip", "./plugin")

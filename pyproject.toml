@@ -14,6 +14,7 @@ ruff = "*"
 
 [tool.pixi.tasks]
 format = "ruff format"
+zip = "python ./scripts/package.py"
 
 [tool.ruff.lint]
 # See: https://docs.astral.sh/ruff/rules/

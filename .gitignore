@@ -92,3 +92,4 @@ plugin/gflow.zip
 .pixi
 *.egg-info
 pixi.lock
+*.zip
